@@ -1,0 +1,5284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Bloqueado</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; background: #f4f7fc; color: #333; }
+    html { font-size: 16px; }
+    @media (max-width: 768px) { html { font-size: 14px; } }
+    @media (max-width: 480px) { html { font-size: 12px; } }
+
+    .dashboard {
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 70px;
+      background: #2f3e46;
+      color: #fff;
+      padding: 20px 10px;
+      transition: width 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .sidebar.expanded,
+    .sidebar:hover {
+      width: 250px;
+    }
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.2em;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar.expanded h2,
+    .sidebar:hover h2 {
+      opacity: 1;
+    }
+    .sidebar nav ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar nav ul li {
+      padding: 15px 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #3a4a54;
+      cursor: pointer;
+      transition: background 0.3s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar nav ul li:hover,
+    .sidebar nav ul li.active {
+      background: #3a4a54;
+    }
+    .sidebar i {
+      font-size: 1.5em;
+      width: 40px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .sidebar nav ul li span {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar.expanded nav ul li span,
+    .sidebar:hover nav ul li span {
+      opacity: 1;
+    }
+
+    .main {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    header {
+      background: linear-gradient(135deg, #01123d, #78788a, #303c5e, #0a1c4e);
+      background-size: 400% 400%;
+      color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      text-align: center;
+      animation: animateHeader 10s ease infinite, fadeInDown 1s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.575);
+      animation: pulseText 2s ease-in-out;
+    }
+
+    @keyframes animateHeader {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes pulseText {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Estilos para o botão calendário */
+    .header-actions {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+    }
+
+    .chart-btn {
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+      transition: all 0.3s ease;
+      min-width: 180px;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chart-btn::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 8px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .chart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+      background: linear-gradient(135deg, #45a049, #4CAF50);
+    }
+
+    .chart-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .chart-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .chart-btn:hover::before {
+      left: 100%;
+    }
+
+    .chart-icon {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.3s ease;
+    }
+
+    .chart-btn:hover .chart-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    /* Responsividade do botão calendário */
+    @media (max-width: 768px) {
+      .header-actions {
+        position: static;
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+      }
+      
+      .chart-btn {
+        min-width: 160px;
+        padding: 10px 14px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .chart-btn {
+        min-width: 140px;
+        padding: 8px 12px;
+        font-size: 11px;
+      }
+      
+      .chart-icon {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .info-cards {
+      width: 100%; 
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: fadeInUp 1s ease-out;
+    }
+    .info-card-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .info-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      min-width: 200px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.5s, box-shadow 0.3s;
+      animation: popIn 0.8s ease-out;
+    }
+    .info-card:hover { 
+      transform: translateY(-10px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .info-card h3 {
+      font-size: 2em;
+      color: #d6d7d8;
+      margin-bottom: 5px;
+      animation: textBounce 1s ease;
+    }
+    .info-card p { 
+      font-size: 1em; 
+      color: #666; 
+      animation: fadeIn 1s ease;
+    }
+    /* Animations */
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      60% { opacity: 1; transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    @keyframes textBounce {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-10px); }
+      50% { transform: translateY(5px); }
+      70% { transform: translateY(-5px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    .card2 {
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+    }
+    .card2::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.3), transparent 70%);
+      transform: scale(0);
+      opacity: 0;
+    }
+    
+    .card {
+      width: 100%;
+      box-sizing: border-box;
+      background: #ffffff;
+      border-radius: 15px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 6px 12px rgba(11, 0, 75, 0.35);
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.3), transparent 70%);
+      transform: scale(0);
+      opacity: 0;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 12px 24px rgba(11, 0, 75, 0.5);
+    }
+    .card:hover::before {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .card h2,
+    .card h3 {
+      margin-bottom: 10px;
+      color: #444;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+    .card:hover h2,
+    .card:hover h3 {
+      color: #0051ff;
+    }
+    .table-container {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .table-wrapper {
+      flex: 1;
+      min-width: 300px;
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      background: white;
+      position: relative;
+    }
+
+    .table-wrapper:hover::after {
+      opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+      .table-wrapper::after {
+        opacity: 1;
+        animation: pulseScroll 2s infinite;
+      }
+    }
+
+    @keyframes pulseScroll {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* Regras específicas para evitar quebra de texto */
+    .table-container table {
+      table-layout: fixed;
+    }
+
+    .table-container table th,
+    .table-container table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-wrap: break-word;
+    }
+
+    /* Tooltip para texto cortado */
+    .table-container table td[title] {
+      cursor: help;
+    }
+
+    .table-container table td[title]:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    /* Larguras específicas para colunas */
+    .table-container table th:nth-child(1),
+    .table-container table td:nth-child(1) {
+      width: 12%;
+      min-width: 80px;
+    }
+
+    .table-container table th:nth-child(2),
+    .table-container table td:nth-child(2) {
+      width: 45%;
+      min-width: 200px;
+    }
+
+    .table-container table th:nth-child(3),
+    .table-container table td:nth-child(3) {
+      width: 30%;
+      min-width: 150px;
+    }
+
+    .table-container table th:nth-child(4),
+    .table-container table td:nth-child(4) {
+      width: 13%;
+      min-width: 100px;
+    }
+
+    /* Larguras para tabela principal (8 colunas) */
+    #relatorioTable2 th:nth-child(1),
+    #relatorioTable2 td:nth-child(1) {
+      width: 8%;
+      min-width: 60px;
+    }
+
+    #relatorioTable2 th:nth-child(2),
+    #relatorioTable2 td:nth-child(2) {
+      width: 8%;
+      min-width: 60px;
+    }
+
+    #relatorioTable2 th:nth-child(3),
+    #relatorioTable2 td:nth-child(3) {
+      width: 10%;
+      min-width: 80px;
+    }
+
+    #relatorioTable2 th:nth-child(4),
+    #relatorioTable2 td:nth-child(4) {
+      width: 30%;
+      min-width: 180px;
+    }
+
+    #relatorioTable2 th:nth-child(5),
+    #relatorioTable2 td:nth-child(5) {
+      width: 22%;
+      min-width: 140px;
+    }
+
+    #relatorioTable2 th:nth-child(6),
+    #relatorioTable2 td:nth-child(6) {
+      width: 12%;
+      min-width: 100px;
+    }
+
+    #relatorioTable2 th:nth-child(7),
+    #relatorioTable2 td:nth-child(7) {
+      width: 10%;
+      min-width: 80px;
+    }
+
+    #relatorioTable2 th:nth-child(8),
+    #relatorioTable2 td:nth-child(8) {
+      width: 10%;
+      min-width: 80px;
+    }
+
+    .table-wrapper::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .table-container table {
+      width: 100%;
+      min-width: 500px;
+      border-collapse: collapse;
+      margin-bottom: 0;
+      font-family: Arial, sans-serif;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+
+    .table-container table th,
+    .table-container table td {
+      border: 1px solid #ddd;
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 12px 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    #searchInput:focus {
+      border-color: #007bff;
+      transform: scale(1.02);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    table thead {
+      background: linear-gradient(135deg, #007bff, #030852);
+      color: #fff;
+    }
+    table th, table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #ddd;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table tbody tr:hover {
+      background: #f5f5f5;
+    }
+    .title-header {
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #000066;
+      padding: 15px 20px;
+      border-radius: 8px;
+      width: 80%;
+      margin: 20px auto;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+    }
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.85), rgba(75, 85, 99, 0.9));
+      backdrop-filter: blur(12px) saturate(1.5);
+      -webkit-backdrop-filter: blur(12px) saturate(1.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .modal.show {
+      display: flex;
+      animation: modalFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-content {
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%);
+      margin: 0;
+      padding: 0;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      position: relative;
+      box-shadow: 
+        0 32px 64px rgba(17, 24, 39, 0.25),
+        0 16px 32px rgba(17, 24, 39, 0.15),
+        0 8px 16px rgba(17, 24, 39, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      animation: modalSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      transform-origin: center;
+    }
+
+    .modal-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(
+        90deg, 
+        #667eea 0%, 
+        #764ba2 25%, 
+        #f093fb 50%, 
+        #f5576c 75%, 
+        #4facfe 100%
+      );
+      background-size: 300% 100%;
+      animation: gradientFlow 4s ease-in-out infinite;
+    }
+
+    @keyframes modalFadeIn {
+      from { 
+        opacity: 0;
+        backdrop-filter: blur(0px);
+      }
+      to { 
+        opacity: 1;
+        backdrop-filter: blur(12px);
+      }
+    }
+
+    @keyframes modalSlideIn {
+      from { 
+        transform: translateY(-40px) scale(0.95);
+        opacity: 0;
+      }
+      50% {
+        transform: translateY(-10px) scale(0.98);
+        opacity: 0.8;
+      }
+      to { 
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes gradientFlow {
+      0%, 100% { 
+        background-position: 0% 50%;
+        transform: scaleX(1);
+      }
+      25% {
+        background-position: 50% 50%;
+        transform: scaleX(1.02);
+      }
+      50% { 
+        background-position: 100% 50%;
+        transform: scaleX(1);
+      }
+      75% {
+        background-position: 150% 50%;
+        transform: scaleX(1.02);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8ff 100%);
+      padding: 32px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal-header::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: -100%;
+      width: 300%;
+      height: 300%;
+      background: radial-gradient(
+        circle at 30% 30%, 
+        rgba(255,255,255,0.15) 0%, 
+        rgba(255,255,255,0.08) 40%,
+        transparent 70%
+      );
+      animation: headerShimmer 6s ease-in-out infinite;
+    }
+
+    @keyframes headerShimmer {
+      0%, 100% { 
+        transform: translate(-50%, -50%) rotate(0deg);
+        opacity: 0.8;
+      }
+      50% { 
+        transform: translate(-50%, -50%) rotate(180deg);
+        opacity: 1;
+      }
+    }
+
+    .modal-header h2 {
+      color: white;
+      margin: 0;
+      text-align: center;
+      font-size: 32px;
+      font-weight: 700;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 3;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .modal-header h2::before {
+      content: '\f073';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      font-size: 28px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .close {
+      color: white;
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+    }
+
+    .close::before {
+      content: '\f00d';
+    }
+
+    .close:hover,
+    .close:focus {
+      background: rgba(239, 68, 68, 0.9);
+      transform: rotate(90deg) scale(1.15);
+      color: white;
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .modal-body {
+      padding: 40px;
+      background: linear-gradient(145deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+      position: relative;
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e0 #f7fafc;
+    }
+
+    .modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+      background: #f7fafc;
+      border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #cbd5e0, #a0aec0);
+      border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #a0aec0, #718096);
+    }
+
+    .compensacao-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .compensacao-item {
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+      padding: 28px;
+      border-radius: 20px;
+      box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 10px 25px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(8px);
+    }
+
+    .compensacao-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 20px 20px 0 0;
+    }
+
+    .compensacao-item:hover {
+      transform: translateY(-12px) scale(1.03);
+      box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.12),
+        0 25px 50px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    }
+
+    .compensacao-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .compensacao-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: white;
+      margin-right: 16px;
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .compensacao-item:hover .compensacao-icon {
+      transform: rotate(360deg) scale(1.1);
+    }
+
+    .compensacao-info {
+      flex: 1;
+    }
+
+    .compensacao-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a202c;
+      margin: 0 0 6px 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      letter-spacing: -0.01em;
+    }
+
+    .compensacao-subtitle {
+      font-size: 14px;
+      color: #718096;
+      margin: 0;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+
+    .compensacao-count {
+      font-size: 36px;
+      font-weight: 800;
+      color: #1a202c;
+      margin: 8px 0 0 0;
+      text-align: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .compensacao-count::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+      border-radius: 1px;
+    }
+
+    .compensacao-item.folga::before {
+      background: linear-gradient(90deg, #10b981, #059669);
+    }
+
+    .compensacao-item.folga .compensacao-icon {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .compensacao-item.folga .compensacao-icon::before {
+      content: '\f236';
+    }
+
+    .compensacao-item.ferias::before {
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+
+    .compensacao-item.ferias .compensacao-icon {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .compensacao-item.ferias .compensacao-icon::before {
+      content: '\f5ca';
+    }
+
+    .compensacao-item.atestado::before {
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+    }
+
+    .compensacao-item.atestado .compensacao-icon {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .compensacao-item.atestado .compensacao-icon::before {
+      content: '\f0f8';
+    }
+
+    .compensacao-item.falta::before {
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .compensacao-item.falta .compensacao-icon {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .compensacao-item.falta .compensacao-icon::before {
+      content: '\f071';
+    }
+
+    .modal-footer {
+      background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
+      padding: 32px 40px;
+      border-top: 1px solid rgba(203, 213, 224, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+    }
+
+    .modal-footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(203, 213, 224, 0.5), transparent);
+    }
+
+    .footer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .control-button {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.08);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .control-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .control-button:hover::before {
+      left: 100%;
+    }
+
+    .export-btn {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .export-btn::after {
+      content: '\f019';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+    }
+
+    .export-btn:hover {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(14, 165, 233, 0.25), 0 16px 32px rgba(14, 165, 233, 0.15);
+    }
+
+    .reset-btn {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .reset-btn::after {
+      content: '\f1f8';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+    }
+
+    .reset-btn:hover {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25), 0 16px 32px rgba(239, 68, 68, 0.15);
+    }
+
+    .total-compensacao {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #a8b8ff 100%);
+      color: white;
+      padding: 20px 32px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 18px;
+      text-align: center;
+      box-shadow: 
+        0 8px 16px rgba(102, 126, 234, 0.25),
+        0 16px 32px rgba(102, 126, 234, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      margin: 0 auto;
+      max-width: 400px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+
+    .total-compensacao::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      animation: totalShine 3s ease-in-out infinite;
+    }
+
+    @keyframes totalShine {
+      0% { left: -100%; }
+      50% { left: 0%; }
+      100% { left: 100%; }
+    }
+
+    /* Estilos para o Modal de Opções do Calendário */
+    .calendar-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 20px 0;
+    }
+
+    .option-card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+      border-color: #667eea;
+    }
+
+    .option-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .option-card:active {
+      transform: translateY(-2px);
+    }
+
+    .option-icon {
+      font-size: 48px;
+      min-width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 50%;
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .option-content h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .option-content p {
+      margin: 0;
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.4;
+    }
+
+    /* Responsividade para o modal de opções */
+    @media (max-width: 768px) {
+      .calendar-options {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px 0;
+      }
+      
+      .option-card {
+        padding: 20px;
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+      }
+      
+      .option-icon {
+        font-size: 40px;
+        min-width: 50px;
+        height: 50px;
+      }
+      
+      .option-content h3 {
+        font-size: 16px;
+      }
+      
+      .option-content p {
+        font-size: 13px;
+      }
+    }
+
+    /* Responsividade mobile para o modal principal */
+    @media (max-width: 768px) {
+      .modal {
+        padding: 12px;
+        align-items: flex-start;
+        padding-top: 40px;
+      }
+      
+      .modal-content {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 20px;
+      }
+      
+      .modal-header {
+        padding: 24px 20px;
+      }
+      
+      .modal-header h2 {
+        font-size: 24px;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .close {
+        width: 40px;
+        height: 40px;
+        top: 16px;
+        right: 16px;
+        font-size: 20px;
+      }
+      
+      .modal-body {
+        padding: 24px 20px;
+        max-height: 50vh;
+      }
+      
+      .compensacao-stats {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .compensacao-item {
+        padding: 20px;
+        border-radius: 16px;
+      }
+      
+      .compensacao-item-header {
+        flex-direction: row;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      
+      .compensacao-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+        margin-right: 12px;
+        border-radius: 12px;
+      }
+      
+      .compensacao-title {
+        font-size: 18px;
+      }
+      
+      .compensacao-count {
+        font-size: 28px;
+        margin-top: 4px;
+      }
+      
+      .modal-footer {
+        padding: 20px;
+      }
+      
+      .footer-controls {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .control-button {
+        padding: 16px 24px;
+        font-size: 16px;
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .total-compensacao {
+        padding: 16px 24px;
+        font-size: 16px;
+        border-radius: 12px;
+      }
+    }
+
+    /* Responsividade para telas muito pequenas */
+    @media (max-width: 480px) {
+      .modal {
+        padding: 8px;
+        padding-top: 20px;
+      }
+      
+      .modal-content {
+        border-radius: 16px;
+        max-height: 90vh;
+      }
+      
+      .modal-header {
+        padding: 20px 16px;
+      }
+      
+      .modal-header h2 {
+        font-size: 20px;
+      }
+      
+      .modal-body {
+        padding: 20px 16px;
+      }
+      
+      .compensacao-stats {
+        gap: 12px;
+      }
+      
+      .compensacao-item {
+        padding: 16px;
+      }
+      
+      .compensacao-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+      }
+      
+      .compensacao-title {
+        font-size: 16px;
+      }
+      
+      .compensacao-count {
+        font-size: 24px;
+      }
+      
+      .modal-footer {
+        padding: 16px;
+      }
+      
+      .control-button {
+        padding: 14px 20px;
+        font-size: 14px;
+      }
+    }
+
+    /* Estilos para o Calendário */
+    .calendar-container {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .calendar-header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calendar-nav-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calendar-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    .calendar-header h3 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .calendar-grid {
+      padding: 20px;
+    }
+
+    .calendar-days-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .day-header {
+      text-align: center;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 14px;
+      padding: 10px 0;
+    }
+
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+      position: relative;
+    }
+
+    .calendar-day:hover {
+      background: #f7fafc;
+      border-color: #667eea;
+      transform: scale(1.05);
+    }
+
+    .calendar-day.other-month {
+      color: #cbd5e0;
+      background: #f8fafc;
+    }
+
+    .calendar-day.today {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-color: #667eea;
+      font-weight: 700;
+    }
+
+    .calendar-day.selected {
+      background: linear-gradient(135deg, #48bb78, #38a169);
+      color: white;
+      border-color: #48bb78;
+    }
+
+    .calendar-day.has-event {
+      background: linear-gradient(135deg, #ed8936, #dd6b20);
+      color: white;
+      border-color: #ed8936;
+    }
+
+    .calendar-day.has-event::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+    }
+
+    /* Responsividade para o calendário */
+    @media (max-width: 768px) {
+      .calendar-header {
+        padding: 15px;
+      }
+      
+      .calendar-header h3 {
+        font-size: 18px;
+      }
+      
+      .calendar-nav-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 20px;
+      }
+      
+      .calendar-grid {
+        padding: 15px;
+      }
+      
+      .calendar-day {
+        font-size: 12px;
+      }
+      
+      .day-header {
+        font-size: 12px;
+        padding: 8px 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .calendar-header {
+        padding: 10px;
+      }
+      
+      .calendar-header h3 {
+        font-size: 16px;
+      }
+      
+      .calendar-nav-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+      }
+      
+      .calendar-grid {
+        padding: 10px;
+      }
+      
+      .calendar-day {
+        font-size: 11px;
+      }
+      
+      .day-header {
+        font-size: 11px;
+        padding: 6px 0;
+      }
+    }
+
+    /* Estilos para o Modal de Evento */
+    .event-form {
+      padding: 20px 0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+
+    /* Container para input/select de colaborador */
+    .employee-input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .employee-input-container input {
+      flex: 1;
+    }
+
+    .toggle-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      height: 40px;
+    }
+
+    .toggle-btn:hover {
+      background: linear-gradient(135deg, #764ba2, #667eea);
+      transform: scale(1.05);
+    }
+
+    .toggle-btn:active {
+      transform: scale(0.95);
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background-color: #fff;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-input[readonly] {
+      background-color: #f7fafc;
+      color: #4a5568;
+      cursor: not-allowed;
+    }
+
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23666' d='M2 0L0 2h4zm0 5L0 3h4z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 12px;
+      padding-right: 40px;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
+
+    .form-select option {
+      padding: 8px;
+    }
+
+    /* Estilos específicos para tipos de ausência */
+    .form-select option[value="folga"] {
+      background-color: #e8f5e8;
+      color: #2d7d32;
+    }
+
+    .form-select option[value="ferias"] {
+      background-color: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .form-select option[value="atestado"] {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .form-select option[value="falta"] {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    /* Validação visual */
+    .form-input.error,
+    .form-select.error,
+    .form-textarea.error {
+      border-color: #f56565;
+      box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
+    }
+
+    .form-input.success,
+    .form-select.success,
+    .form-textarea.success {
+      border-color: #48bb78;
+      box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.1);
+    }
+
+    /* Responsividade para o modal de evento */
+    @media (max-width: 768px) {
+      .event-form {
+        padding: 15px 0;
+      }
+      
+      .form-group {
+        margin-bottom: 15px;
+      }
+      
+      .form-input,
+      .form-select,
+      .form-textarea {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      
+      .form-select {
+        background-position: right 10px center;
+        background-size: 10px;
+        padding-right: 35px;
+      }
+      
+      .toggle-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 36px;
+        height: 36px;
+      }
+      
+      .employee-input-container {
+        gap: 6px;
+      }
+    }
+
+    /* Estilos para os selects de ausência */
+    select.ausencia-select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      background-color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23666' d='M2 0L0 2h4zm0 5L0 3h4z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 10px;
+      padding-right: 25px;
+    }
+
+    select.ausencia-select:hover {
+      border-color: #007bff;
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
+    }
+
+    select.ausencia-select:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 12px rgba(0, 123, 255, 0.4);
+    }
+
+    /* Estilos específicos para cada tipo de ausência */
+    select.ausencia-select.folga {
+      background-color: #e8f5e8;
+      color: #2d7d32;
+      border-color: #4caf50;
+    }
+
+    select.ausencia-select.falta {
+      background-color: #ffebee;
+      color: #c62828;
+      border-color: #f44336;
+    }
+
+    select.ausencia-select.ferias {
+      background-color: #fff3e0;
+      color: #ef6c00;
+      border-color: #ff9800;
+    }
+
+    select.ausencia-select.atestado {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      border-color: #2196f3;
+    }
+
+    /* Animação para mudanças */
+    select.ausencia-select.changed {
+      animation: selectChange 0.3s ease;
+    }
+
+    @keyframes selectChange {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    /* Destaque para linhas filtradas */
+    .table-row-highlight {
+      background-color: rgba(0, 123, 255, 0.1) !important;
+      animation: highlightRow 0.5s ease;
+    }
+
+    @keyframes highlightRow {
+      0% { background-color: rgba(0, 123, 255, 0.3); }
+      100% { background-color: rgba(0, 123, 255, 0.1); }
+    }
+
+    /* Indicador visual para filtro ativo */
+    .filter-active {
+      border-color: #28a745 !important;
+      box-shadow: 0 0 8px rgba(40, 167, 69, 0.3) !important;
+    }
+
+    .filter-active::before {
+      content: "🔍";
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        padding: 10px;
+      }
+      .sidebar.expanded,
+      .sidebar:hover {
+        width: 100%;
+      }
+      .main { 
+        padding: 10px; 
+      }
+      
+      /* Header responsivo */
+      header {
+        padding: 20px 200px 20px 20px; /* Adiciona mais espaço à direita para o botão maior */
+      }
+      
+      header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+      }
+      
+      header p {
+        font-size: 0.9rem;
+      }
+      
+      /* Cards responsivos */
+      .info-cards { 
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .info-card {
+        min-width: unset;
+        padding: 15px;
+      }
+      
+      .info-card img {
+        width: 60px !important;
+        height: 60px !important;
+      }
+      
+      /* Tabelas com scroll horizontal */
+      .table-container { 
+        flex-direction: column; 
+        align-items: center;
+        gap: 15px;
+      }
+      
+      .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background: white;
+      }
+      
+      .table-container table {
+        min-width: 600px;
+        width: auto;
+        margin: 0;
+      }
+      
+      .table-container table th,
+      .table-container table td {
+        padding: 8px 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        min-width: 80px;
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      /* Chart-3 ocupa 100% da altura quando os outros ficam empilhados */
+      .info-card-container {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 630px; /* Altura mínima igual a 2 charts empilhados */
+      }
+      
+      /* Modal responsivo */
+      .modal-content {
+        width: 95%;
+        margin: 5% auto;
+        padding: 0;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      
+      .modal-header {
+        padding: 20px;
+      }
+      
+      .modal-header h2 {
+        font-size: 20px;
+      }
+      
+      .modal-body {
+        padding: 15px;
+      }
+      
+      .compensacao-stats {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .compensacao-item {
+        padding: 20px;
+      }
+      
+      .compensacao-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+      
+      .compensacao-title {
+        font-size: 16px;
+      }
+      
+      .compensacao-count {
+        font-size: 24px;
+      }
+      
+      .modal-footer {
+        padding: 15px;
+      }
+      
+      .footer-controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .control-button {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      /* Filtros responsivos */
+      .filter-active::before {
+        display: none;
+      }
+      
+      /* Feedback responsivo */
+      .save-feedback {
+        left: 10px !important;
+        right: 10px !important;
+        transform: none !important;
+        width: calc(100% - 20px) !important;
+      }
+      
+      .filter-status {
+        left: 10px !important;
+        right: 10px !important;
+        width: calc(100% - 20px) !important;
+      }
+      
+      /* Selects de ausência responsivos */
+      .ausencia-select {
+        font-size: 11px;
+        padding: 4px 20px 4px 6px;
+        background-size: 8px;
+        background-position: right 6px center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      html { 
+        font-size: 12px; 
+      }
+      
+      .main {
+        padding: 5px;
+      }
+      
+      header {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      
+      header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .info-cards {
+        gap: 10px;
+      }
+      
+      .info-card {
+        padding: 12px;
+      }
+      
+      .info-card img {
+        width: 50px !important;
+        height: 50px !important;
+      }
+      
+      .info-card h3 {
+        font-size: 1.3rem;
+      }
+      
+      .info-card p {
+        font-size: 0.8rem;
+      }
+      
+      .table-container table th,
+      .table-container table td {
+        padding: 6px 4px;
+        font-size: 10px;
+        min-width: 60px;
+        max-width: 120px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .compensacao-item {
+        padding: 15px;
+      }
+      
+      .compensacao-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+      }
+      
+      .compensacao-title {
+        font-size: 14px;
+      }
+      
+      .compensacao-count {
+        font-size: 20px;
+      }
+      
+      .ausencia-select {
+        font-size: 10px;
+        padding: 3px 18px 3px 5px;
+      }
+      
+      /* Chart-3 responsivo para telas muito pequenas */
+      .info-card-container {
+        min-height: 520px !important;
+      }
+    }
+  </style>
+
+
+</head>
+<body>
+  <div class="dashboard">
+    <div class="main" id="main">
+      <header>
+        <h1 style="font-family: Arial black, sans-serif;">Dashboard Banco de horas Controle de estoque</h1>
+        <p>Métricas detalhadas e insights para tomada de decisão</p>
+              <div class="header-actions">
+                <button class="chart-btn" id="chartBtn" onclick="openCalendarModal()">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 700;">Alimentar Dados</span>
+                        <span style="font-size: 10px; opacity: 0.8;" id="currentDate"></span>
+                    </div>
+                </button>
+            </div>
+      </header>
+      
+      <div class="info-cards">
+          <div class="info-card" style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://cdn-icons-png.flaticon.com/256/536/536011.png" alt="Ícone" style="width: 80px; height: 80px;">
+          <div>
+        <h3 id="Total_a_receber" style="color: red;" class="card2"></h3>
+        <p>Valor de Horas a receber</p>
+          </div>
+          </div>
+
+          <div class="info-card" style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://cdn-icons-png.flaticon.com/512/554/554744.png" alt="Ícone" style="width: 80px; height: 80px;">
+          <div>
+          <h3 id="Total_de_colaboradores_a_receber" style="color: blue;" class="card2"></h3>
+          <p>Colaboradores a receber</p>
+          </div>
+        </div>
+        
+        <div class="info-card" style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://cdn-icons-png.flaticon.com/512/554/554744.png" alt="Ícone" style="width: 80px; height: 80px;">
+          <div>
+          <h3 id="Total_de_colaboradores_com_abono" style="color: blue;" class="card2"></h3>
+          <p>Colaboradores com abono</p>
+        </div>
+        </div>
+
+        <div class="info-card" style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://cdn-icons-png.flaticon.com/256/536/536011.png" alt="Ícone" style="width: 80px; height: 80px;">
+          <div>
+          <h3 id="Total_de_Abono" style="color: green;" class="card2"></h3>
+          <p>Valor de Horas abonadas</p>
+        </div>
+      </div>
+
+      <div class="info-card" style="display: flex; align-items: center; gap: 10px;">
+          <img src="https://cdn-icons-png.flaticon.com/512/2329/2329038.png" alt="Ícone" style="width: 80px; height: 80px;">
+          <div>
+          <button style="background: linear-gradient(135deg, #007bff, #030852); color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="openCompensacaoModal()">Compensação</button>
+          <p>Gestão de compensação</p>
+        </div>
+      </div>
+
+      </div>
+
+          <div class="table-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <div class="table-wrapper">
+            <table id="relatorioTable" style="flex: 1; min-width: 300px;">
+              <thead id="tableHead">
+              <tr>
+                <th colspan="4" style="text-align: center; font-family: Arial; font-size: 18px; background-color: rgba(0, 22, 56, 0.301); color: white;">
+                TOP 10 COLABORADORES COM MAIOR QUANTIDADE DE HORAS
+                </th>
+              </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          
+          <div class="table-wrapper">
+            <table id="relatorioTable2" style="flex: 1; min-width: 300px;">
+              <thead id="tableHead2">
+              <tr>
+                <th colspan="4" style="text-align: center; font-family: Arial Black; font-size: 18px; background-color: rgba(0, 0, 100, 0.336); color: white;">
+                TOP 10 COLABORADORES COM MAIOR QUANTIDADE DE HORAS A VENCER
+                </th>
+              </tr>
+              </thead>
+              <tbody id="tableBody2"></tbody>
+            </table>
+          </div>
+          </div>
+
+      <div class="sub-chart card2" style="margin-top: 25px;">
+      <div class="table-wrapper">
+        <table id="relatorioTable2">
+          <thead id="tableHead2">
+            <tr>
+              <th colspan="8" style="text-align: center; font-family: Arial rgba(41, 43, 182, 0.432); font-size: 18px; background-color: rgba(0, 0, 100, 0.336); color: white; font-size: large; font-family: Arial Black;">TABELA GERAL CONTROLE DO BANCO DE HORAS CONTROLE DE ESTOQUE</th>
+            </tr>
+            <thead id="tableHead13"></thead>
+          </thead>
+          <tbody id="tableBody13"></tbody>
+        </table>
+      </div>
+    </div>
+      
+  <!-- Modal de Compensação -->
+  <div id="compensacaoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>📊 Compensação de Ausências</h2>
+      </div>
+      <div class="modal-body">
+        <div id="compensacaoData" class="compensacao-stats">
+          <!-- Os dados serão inseridos aqui via JavaScript -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="footer-controls">
+          <button onclick="exportarDadosAtuais()" class="control-button export-btn">
+            📊 Exportar Dados
+          </button>
+          <button onclick="resetarDadosSalvos()" class="control-button reset-btn">
+            🔄 Resetar Dados
+          </button>
+        </div>
+        <div class="total-compensacao">
+          <span id="totalCompensacao">Total: 0 registros</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de Opções do Calendário -->
+  <div id="calendarOptionsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close" onclick="closeCalendarModal()">&times;</span>
+        <h2>📅 Opções do Sistema</h2>
+      </div>
+      <div class="modal-body">
+        <div class="calendar-options">
+          <div class="option-card" onclick="selectOption('database')">
+            <div class="option-icon">📊</div>
+            <div class="option-content">
+              <h3>Alimentar Banco de Dados</h3>
+              <p>Importar e gerenciar dados do sistema</p>
+            </div>
+          </div>
+          
+          <div class="option-card" onclick="selectOption('calendar')">
+            <div class="option-icon">📅</div>
+            <div class="option-content">
+              <h3>Calendário</h3>
+              <p>Visualizar e gerenciar eventos</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal do Calendário -->
+  <div id="calendarModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <span class="close" onclick="closeCalendarViewModal()">&times;</span>
+        <h2>📅 Calendário</h2>
+      </div>
+      <div class="modal-body">
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button id="prevMonth" class="calendar-nav-btn">‹</button>
+            <h3 id="currentMonth"></h3>
+            <button id="nextMonth" class="calendar-nav-btn">›</button>
+          </div>
+          <div class="calendar-grid">
+            <div class="calendar-days-header">
+              <div class="day-header">Dom</div>
+              <div class="day-header">Seg</div>
+              <div class="day-header">Ter</div>
+              <div class="day-header">Qua</div>
+              <div class="day-header">Qui</div>
+              <div class="day-header">Sex</div>
+              <div class="day-header">Sáb</div>
+            </div>
+            <div id="calendarDays" class="calendar-days">
+              <!-- Os dias serão gerados pelo JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="goToToday()" class="control-button">📅 Hoje</button>
+        <button onclick="closeCalendarViewModal()" class="control-button">Fechar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de Evento do Calendário -->
+  <div id="eventModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <span class="close" onclick="closeEventModal()">&times;</span>
+        <h2>📅 Adicionar Evento</h2>
+      </div>
+      <div class="modal-body">
+        <div class="event-form">
+          <div class="form-group">
+            <label for="eventDate">Data:</label>
+            <input type="text" id="eventDate" readonly class="form-input">
+          </div>
+          
+          <div class="form-group">
+            <label for="employeeSelect">Matrícula do Colaborador:</label>
+            <div class="employee-input-container">
+              <input type="text" id="employeeInput" class="form-input" placeholder="Digite a matrícula ou nome do colaborador..." list="employeeList">
+              <datalist id="employeeList">
+                <!-- As opções serão preenchidas via JavaScript -->
+              </datalist>
+              <button type="button" id="toggleEmployeeSelect" class="toggle-btn">📋</button>
+            </div>
+            <select id="employeeSelect" class="form-select" style="display: none;">
+              <option value="">Selecione um colaborador...</option>
+              <!-- As opções serão preenchidas via JavaScript -->
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="absenceType">Tipo de Ausência:</label>
+            <select id="absenceType" class="form-select">
+              <option value="">Selecione o tipo...</option>
+              <option value="folga">🏖️ Folga</option>
+              <option value="ferias">✈️ Férias</option>
+              <option value="atestado">🏥 Atestado</option>
+              <option value="falta">❌ Falta</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="eventNotes">Observações (opcional):</label>
+            <textarea id="eventNotes" class="form-textarea" placeholder="Adicione observações sobre o evento..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="saveEvent()" class="control-button export-btn">💾 Salvar Evento</button>
+        <button onclick="closeEventModal()" class="control-button reset-btn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+
+
+/* Função para criar os cards de informações [Banco de dados] */
+
+// Função para carregar dados salvos do localStorage
+function carregarDadosSalvos() {
+  const dadosSalvos = localStorage.getItem('bancoHoras_ausencias');
+  if (dadosSalvos) {
+    try {
+      const ausenciasSalvas = JSON.parse(dadosSalvos);
+      // Atualizar o array datadash_13 com os dados salvos
+      if (ausenciasSalvas.length === datadash_13.Ausência.length) {
+        datadash_13.Ausência = ausenciasSalvas;
+        console.log('Dados de ausências carregados do localStorage');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados salvos:', error);
+    }
+  }
+}
+
+// Função para salvar dados no localStorage (agora baseada apenas no calendário)
+function salvarDadosAusencias() {
+  try {
+    // As ausências agora são controladas exclusivamente pelo calendário
+    // Esta função é mantida para compatibilidade mas não faz mais persistência
+    console.log('Ausências agora são controladas exclusivamente pelo calendário');
+  } catch (error) {
+    console.error('Erro ao processar dados:', error);
+  }
+}
+
+// Função para resetar dados salvos
+function resetarDadosSalvos() {
+  if (confirm('Tem certeza que deseja resetar todos os dados salvos? Esta ação não pode ser desfeita.')) {
+    localStorage.removeItem('bancoHoras_ausencias');
+    // Recarregar a página para voltar aos dados originais
+    if (confirm('Deseja recarregar a página para aplicar as alterações?')) {
+      location.reload();
+    }
+  }
+}
+
+// Função para exportar dados atuais
+function exportarDadosAtuais() {
+  const dadosExport = {
+    ausencias: datadash_13.Ausência,
+    dataExport: new Date().toISOString(),
+    totalRegistros: datadash_13.Ausência.length
+  };
+  
+  const blob = new Blob([JSON.stringify(dadosExport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `banco_horas_ausencias_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+const datadash_1 = {
+  "Matrícula": [
+    "114086",
+    "113846",
+    "71333",
+    "14910",
+    "109222",
+    "7032",
+    "113415",
+    "112060",
+    "5501",
+    "113605"
+  ],
+  "Colaborador": [
+    " VANIA DA SILVA GOMES DE SOUSA",
+    " JOAO VICTOR MUNIZ VIANA",
+    " CASSIO APARECIDO ALVES CUNHA",
+    " ELI ANTONIO DA ROCHA",
+    " TAMARA APARECIDA MELO",
+    " FABIANI CRISTINA FLORES",
+    " EDUARDO COSTA SILVA",
+    " THIAGO VIANA TEIXEIRA",
+    " RILDO CASSIO APARECIDO DO NASCIMENTO",
+    " MARCOS PHILIPE TAVARES NOGUEIRA"
+  ],
+  "Cargo": [
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO"
+  ],
+  "Horas_totais": [
+    139.2,
+    128.19,
+    124.39,
+    124.05,
+    121.16,
+    118.59,
+    117.27,
+    112.07,
+    111.2,
+    110.41
+  ]
+};const datadash_2 = {
+  "Matrícula": [
+    "113846",
+    "114086",
+    "71333",
+    "113605",
+    "7032",
+    "5501",
+    "109222",
+    "113415",
+    "112060",
+    "14910"
+  ],
+  "Colaborador": [
+    " JOAO VICTOR MUNIZ VIANA",
+    " VANIA DA SILVA GOMES DE SOUSA",
+    " CASSIO APARECIDO ALVES CUNHA",
+    " MARCOS PHILIPE TAVARES NOGUEIRA",
+    " FABIANI CRISTINA FLORES",
+    " RILDO CASSIO APARECIDO DO NASCIMENTO",
+    " TAMARA APARECIDA MELO",
+    " EDUARDO COSTA SILVA",
+    " THIAGO VIANA TEIXEIRA",
+    " ELI ANTONIO DA ROCHA"
+  ],
+  "Cargo": [
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA"
+  ],
+  "Horas_totais_a_receber": [
+    37.15,
+    34.15,
+    33.23,
+    32.39,
+    28.41,
+    28.15,
+    27.23,
+    24.19,
+    24.08,
+    20.44
+  ]
+};const datadash_3 = {
+  "Turno_1": 2281.58,
+  "Turno_2": 865.53
+};const datadash_4 = {
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III"
+  ],
+  "Horas_totais": [
+    159.03,
+    1712.76,
+    138.35,
+    352.78,
+    167.17,
+    149.9,
+    467.12
+  ]
+};const datadash_5 = {
+  "Turno_1": 511.38,
+  "Turno_2": 183.04
+};const datadash_6 = {
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III"
+  ],
+  "Horas_totais_a_receber": [
+    41.27,
+    376.5,
+    21.46,
+    58.42,
+    60.07,
+    31.46,
+    105.24
+  ]
+};const datadash_7 = {
+  "Turno_1": 7.2,
+  "Turno_2": 7.2
+};const datadash_8 = {
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III"
+  ],
+  "Horas_totais_abono": [
+    0.0,
+    0.0,
+    0.0,
+    7.2,
+    7.2,
+    0.0,
+    0.0
+  ]
+};const datadash_9 = {
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III"
+  ],
+  "Valor_a_receber": [
+    1155.84,
+    9950.39,
+    0.0,
+    1362.71,
+    860.46,
+    560.74,
+    2413.37
+  ]
+};const datadash_10 = {
+  "Turno_1": 10820.61,
+  "Turno_2": 5482.89
+};const datadash_11 = {
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III"
+  ],
+  "Valor_abonado": [
+    0.0,
+    0.0,
+    0.0,
+    192.05,
+    118.06,
+    0.0,
+    0.0
+  ]
+};const datadash_12 = {
+  "Turno_1": 118.06,
+  "Turno_2": 192.05
+};const datadash_13 = {
+  "Turno": [
+    "1",
+    "1",
+    "1",
+    "1",
+    "2",
+    "1",
+    "1",
+    "2",
+    "1",
+    "1",
+    "1",
+    "2",
+    "2",
+    "2",
+    "2",
+    "2",
+    "2",
+    "1",
+    "2",
+    "1",
+    "1",
+    "1",
+    "1",
+    "2",
+    "2",
+    "2",
+    "1",
+    "1",
+    "1",
+    "2",
+    "1",
+    "2",
+    "2",
+    "1",
+    "1",
+    "1",
+    "2",
+    "1",
+    "1",
+    "2",
+    "1",
+    "2",
+    "1",
+    "1",
+    "1",
+    "2",
+    "2",
+    "2",
+    "1",
+    "1",
+    "1",
+    "1",
+    "1",
+    "2",
+    "1",
+    "1",
+    "1",
+    "2",
+    "1",
+    "2",
+    "1",
+    "1"
+  ],
+  "Ausência": [
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "Atestado",
+    "nan",
+    "nan",
+    "nan",
+    "Folga",
+    "nan",
+    "nan",
+    "nan",
+    "Férias",
+    "Férias",
+    "Atestado",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "Atestado",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "Férias",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "nan",
+    "Férias"
+  ],
+  "Matrícula": [
+    "110943",
+    "106452",
+    "110913",
+    "112080",
+    "71333",
+    "110721",
+    "108122",
+    "995556",
+    "110222",
+    "111705",
+    "112392",
+    "113415",
+    "14910",
+    "111984",
+    "95514",
+    "89109",
+    "7032",
+    "114065",
+    "114747",
+    "106407",
+    "109231",
+    "112939",
+    "71921",
+    "109242",
+    "113846",
+    "49842",
+    "110656",
+    "108737",
+    "114558",
+    "107937",
+    "113560",
+    "113496",
+    "107401",
+    "109168",
+    "113605",
+    "70984",
+    "34959",
+    "106526",
+    "113574",
+    "114469",
+    "109992",
+    "112467",
+    "115634",
+    "44477",
+    "112938",
+    "111973",
+    "114305",
+    "13672",
+    "5501",
+    "110047",
+    "107815",
+    "96218",
+    "113995",
+    "114870",
+    "109222",
+    "112282",
+    "112060",
+    "89298",
+    "114086",
+    "112312",
+    "106227",
+    "70974"
+  ],
+  "Colaborador": [
+    " ADA RAABE SILVA VELOSO",
+    " ANA SUELY DE OLIVEIRA",
+    " BRUNO FARIA XAVIER",
+    " CARLOS LUCIANO DE SOUZA CASSIANO",
+    " CASSIO APARECIDO ALVES CUNHA",
+    " CELSO ARAUJO DA COSTA",
+    " CLEUDIMAR CANDIDO DA SILVA",
+    " CLEYTON VALE DE LIMA",
+    " DAIANA SANTOS SOARES",
+    " EDINEIA DOS SANTOS GOMES",
+    " EDIVAN DO AMOR DIVINO",
+    " EDUARDO COSTA SILVA",
+    " ELI ANTONIO DA ROCHA",
+    " ELIELSON PEREIRA DE SOUZA",
+    " ENI MOISES GOMES",
+    " EVALDO JOSE SOARES",
+    " FABIANI CRISTINA FLORES",
+    " FABIO DE FREITAS ROSA CARDOSO",
+    " FERNANDO SILVA RODRIGUES",
+    "GABRIEL VARGAS PIMENTA",
+    " GENILSON GREGORIO ANTERO",
+    " GUSTAVO PEREIRA",
+    " ISRAEL BATISTA DE OLIVEIRA",
+    " JHONATAN RODRIGUES PAZ SILVA",
+    " JOAO VICTOR MUNIZ VIANA",
+    " JOSE ERIVELTON ALBINO",
+    " JOSE MARCOS ALVES SILVA",
+    " KEILA APARECIDA MENDES DE ARAUJO",
+    " LUIZ FELIPE JULIO SILVA",
+    " MAIRON THYERRY GOMES DA SILVA FONSECA",
+    " MARCELINO ALVES FERREIRA NETO",
+    " MARCO AURELIO DE JESUS SILVA",
+    " MARCO TULIO GONCALVES DE PAULA",
+    " MARCOS LEVIR SOARES DE OLIVEIRA",
+    " MARCOS PHILIPE TAVARES NOGUEIRA",
+    " MARIA HELENA BORGES DE MORAIS",
+    " MARIA LEOMAR DA SILVA",
+    " MARIA VILMA DE OLIVEIRA SANTOS",
+    " MATEUS DUARTE DELFINO",
+    " MATHEUS HENRIQUE SILVA DE OLIVEIRA",
+    " MATHEUS VITOR DA SILVA VIEIRA",
+    " MAURICIO HENRIQUE BARBOSA",
+    " OEDSON COLACO DOS SANTOS",
+    " OSIAS MARTINS RIBEIRO",
+    " PABLO DA SILVA FERREIRA",
+    " PEDRO HENRIQUE SANTOS TOME",
+    " RAFAEL HENRIQUE DE MEIRA FREITAS",
+    " RENATO DA SILVA LEAL",
+    " RILDO CASSIO APARECIDO DO NASCIMENTO",
+    " RODRIGO CARLOS PUNHAGUI",
+    " RODRIGO DE LIMA GOMES JUNIOR",
+    " SILVIO DIAS ARANTES",
+    " SUZANA AMANCIO DE OLIVEIRA",
+    " TALES APARECIDO LOPES FERREIRA",
+    " TAMARA APARECIDA MELO",
+    " TATIANA DO PRADO SANTOS",
+    " THIAGO VIANA TEIXEIRA",
+    " VAGMAR GONCALVES",
+    " VANIA DA SILVA GOMES DE SOUSA",
+    " VINICIUS JOSE DOS SANTOS",
+    " WANESSA DAYANE DAMASCENO RIBEIRO",
+    " WILLIAN MIRO COUTO SILVA"
+  ],
+  "Cargo": [
+    "ASSISTENTE LOGISTICA II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "LIDER PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "ASSISTENTE PRODUCAO",
+    "LIDER PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE LOGISTICA II",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR EMPILHADEIRA",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM III",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO",
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "ASSISTENTE PRODUCAO",
+    "ASSISTENTE PRODUCAO"
+  ],
+  "Horas_a_receber": [
+    20.04,
+    1.5,
+    0.0,
+    4.04,
+    33.23,
+    0.0,
+    0.0,
+    -24.19,
+    0.22,
+    0.0,
+    36.55,
+    24.19,
+    20.44,
+    15.21,
+    8.22,
+    20.19,
+    28.41,
+    21.46,
+    0.0,
+    26.46,
+    22.45,
+    19.52,
+    18.49,
+    0.0,
+    37.15,
+    3.1,
+    22.05,
+    22.01,
+    0.0,
+    -32.5,
+    0.0,
+    6.54,
+    0.0,
+    0.0,
+    32.39,
+    6.06,
+    4.42,
+    0.0,
+    5.37,
+    0.0,
+    21.25,
+    0.0,
+    0.0,
+    21.23,
+    4.0,
+    0.0,
+    25.16,
+    3.26,
+    28.15,
+    28.3,
+    19.0,
+    11.43,
+    0.0,
+    0.0,
+    27.23,
+    0.0,
+    24.08,
+    10.21,
+    34.15,
+    0.0,
+    26.41,
+    7.54
+  ],
+  "Receber": [
+    559.56,
+    41.71,
+    0.0,
+    71.78,
+    759.58,
+    0.0,
+    0.0,
+    0.0,
+    8.34,
+    0.0,
+    594.3,
+    553.28,
+    542.99,
+    349.26,
+    190.37,
+    532.08,
+    652.64,
+    0.0,
+    0.0,
+    609.03,
+    517.64,
+    201.77,
+    428.14,
+    0.0,
+    847.56,
+    82.93,
+    389.81,
+    500.95,
+    0.0,
+    0.0,
+    0.0,
+    157.0,
+    0.0,
+    0.0,
+    742.89,
+    138.8,
+    106.94,
+    0.0,
+    99.14,
+    0.0,
+    487.3,
+    0.0,
+    0.0,
+    596.28,
+    64.39,
+    0.0,
+    574.9,
+    -102.14,
+    642.78,
+    648.47,
+    432.31,
+    306.85,
+    0.0,
+    0.0,
+    623.06,
+    0.0,
+    549.11,
+    235.5,
+    779.3,
+    0.0,
+    607.13,
+    179.75
+  ],
+  "Abono": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    118.06,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    192.05,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+};const datadash_14 = {
+  "Matrícula": [
+    "112939",
+    "13672"
+  ],
+  "Colaborador": [
+    " GUSTAVO PEREIRA",
+    " RENATO DA SILVA LEAL"
+  ],
+  "Cargo": [
+    "OPERADOR MOVIMENTACAO E ARMAZENAGEM I",
+    "OPERADOR EMPILHADEIRA"
+  ],
+  "Valor_abonado": [
+    118.06,
+    192.05
+  ]
+};const datadash_15 = {
+  "Total_a_receber": 16405.64,
+  "Total_de_Abono": 310.11,
+  "Total_de_colaboradores_a_receber": 39,
+  "Total_de_colaboradores_com_abono": 2
+};
+
+// Carregar dados salvos do localStorage (se existirem)
+carregarDadosSalvos();
+
+/* Fim [Banco de dados] */
+
+// Tabela 1
+const tableHead = document.getElementById("tableHead");
+const tableBody = document.getElementById("tableBody");
+
+const keys = Object.keys(datadash_1);
+const headerRow = document.createElement("tr");
+
+keys.forEach(key => {
+  const th = document.createElement("th");
+  th.innerText = key;
+  headerRow.appendChild(th);
+});
+tableHead.appendChild(headerRow);
+
+const numRows = datadash_1[keys[0]].length;
+
+for (let i = 0; i < numRows; i++) {
+  const row = document.createElement("tr");
+
+  keys.forEach(key => {
+    const td = document.createElement("td");
+    td.style.transition = "transform 0.2s";
+    td.addEventListener("mouseenter", function() {
+      this.style.transform = "scale(1.05)";
+    });
+    td.addEventListener("mouseleave", function() {
+      this.style.transform = "scale(1)";
+    });
+
+    if (key === "Horas_totais") {
+      const totalHoras = datadash_1[key][i];
+      const horasPorDia = 7.2;
+      const dias = Math.floor(totalHoras / horasPorDia);
+      const horasRestantes = totalHoras % horasPorDia;
+      const horas = Math.floor(horasRestantes);
+      const minutos = Math.round((horasRestantes - horas) * 60);
+      let texto = "";
+      if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
+      if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
+      if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
+      td.innerText = texto || "0 minuto";
+      td.title = totalHoras + " Hrs";
+    } else {
+      td.innerText = datadash_1[key][i];
+      
+      // Adicionar tooltip se o texto for longo
+      if (key === "Colaborador" || key === "Cargo") {
+        const texto = datadash_1[key][i];
+        if (texto && texto.length > 15) {
+          td.title = texto;
+        }
+      }
+    }
+    row.appendChild(td);
+  });
+  tableBody.appendChild(row);
+}
+
+// Tabela 2
+
+const tableHead2 = document.getElementById("tableHead2");
+const tableBody2 = document.getElementById("tableBody2");
+
+const keys2 = Object.keys(datadash_2);
+const headerRow2 = document.createElement("tr");
+
+keys2.forEach(key => {
+  const th = document.createElement("th");
+  th.innerText = key;
+  headerRow2.appendChild(th);
+});
+tableHead2.appendChild(headerRow2);
+
+const numRows2 = datadash_2[keys2[0]].length;
+
+for (let i = 0; i < numRows2; i++) {
+  const row = document.createElement("tr");
+
+  keys2.forEach(key => {
+    const td = document.createElement("td");
+    td.style.transition = "transform 0.2s";
+    td.addEventListener("mouseenter", function() {
+      this.style.transform = "scale(1.05)";
+    });
+    td.addEventListener("mouseleave", function() {
+      this.style.transform = "scale(1)";
+    });
+
+    if (key === "Horas_totais_a_receber") {
+      const totalHoras = datadash_2[key][i];
+      const horasPorDia = 7.2;
+      const dias = Math.floor(totalHoras / horasPorDia);
+      const horasRestantes = totalHoras % horasPorDia;
+      const horas = Math.floor(horasRestantes);
+      const minutos = Math.round((horasRestantes - horas) * 60);
+      let texto = "";
+      if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
+      if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
+      if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
+      td.innerText = texto || "0 minuto";
+      td.title = totalHoras + " Hrs";
+    } else {
+      td.innerText = datadash_2[key][i];
+      
+      // Adicionar tooltip se o texto for longo
+      if (key === "Colaborador" || key === "Cargo") {
+        const texto = datadash_2[key][i];
+        if (texto && texto.length > 15) {
+          td.title = texto;
+        }
+      }
+    }
+    row.appendChild(td);
+  });
+  tableBody2.appendChild(row);
+}
+
+
+//tabela 3
+const tableHead13 = document.getElementById("tableHead13");
+const tableBody13 = document.getElementById("tableBody13");
+
+const keys13 = Object.keys(datadash_13);
+const headerRow13 = document.createElement("tr");
+
+keys13.forEach((key, index) => {
+  const th = document.createElement("th");
+  th.innerText = key;
+  th.style.padding = "8px";
+  th.style.backgroundColor = "#003366";
+  th.style.color = "#fff";
+  th.style.border = "1px solid #ddd";
+  th.style.cursor = "pointer";
+  th.dataset.colIndex = index;
+  th.dataset.sortOrder = "asc";
+  
+  const sortIcon = document.createElement("span");
+  sortIcon.innerText = " ⬍";
+  sortIcon.style.fontSize = "0.8em";
+  th.appendChild(sortIcon);
+  
+  th.addEventListener("click", () => {
+    th.style.transition = "transform 0.2s";
+    th.style.transform = "scale(0.95)";
+    setTimeout(() => {
+      th.style.transform = "scale(1)";
+    }, 200);
+    
+    th.dataset.sortOrder = th.dataset.sortOrder === "asc" ? "desc" : "asc";
+    sortTable13(index, key);
+  });
+  
+  headerRow13.appendChild(th);
+});
+tableHead13.appendChild(headerRow13);
+
+const filterRow = document.createElement("tr");
+keys13.forEach((key, index) => {
+  const th = document.createElement("th");
+  th.style.border = "1px solid #ddd";
+  th.style.padding = "4px";
+  
+  const input = document.createElement("input");
+  input.type = "text";
+  
+  // Placeholder personalizado para a coluna Ausência
+  if (key === "Ausência") {
+    input.placeholder = "Filtro: Vazio, Folga, Férias, Falta, Atestado";
+    input.title = "Digite: Vazio, Folga, Férias, Falta ou Atestado";
+  } else {
+    input.placeholder = "Filtro " + key;
+  }
+  
+  input.style.width = "100%";
+  input.style.padding = "6px";
+  input.style.border = "1px solid #ccc";
+  input.style.borderRadius = "4px";
+  input.style.outline = "none";
+  input.style.transition = "border-color 0.3s, box-shadow 0.3s";
+  input.addEventListener("focus", () => {
+    input.style.borderColor = "#66afe9";
+    input.style.boxShadow = "0 0 8px rgba(102, 175, 233, 0.6)";
+  });
+  input.addEventListener("blur", () => {
+    input.style.borderColor = "#ccc";
+    input.style.boxShadow = "none";
+  });
+  input.dataset.colIndex = index;
+  input.addEventListener("input", filterTable);
+  
+  th.appendChild(input);
+  filterRow.appendChild(th);
+});
+tableHead13.appendChild(filterRow);
+
+function sortTable13(colIndex, key) {
+  const rows = Array.from(tableBody13.getElementsByTagName("tr"));
+  const rowPositions = new Map();
+  rows.forEach(row => {
+    rowPositions.set(row, row.getBoundingClientRect().top);
+  });
+  
+  const parseLocaleNumber = (str) => {
+    let normalized = str.replace(/[^0-9,.-]/g, "");
+    normalized = normalized.replace(/\./g, "");
+    normalized = normalized.replace(/,/g, ".");
+    return parseFloat(normalized);
+  };
+
+  const currentOrder = headerRow13.children[colIndex].dataset.sortOrder || "asc";
+  const rowsArray = Array.from(tableBody13.getElementsByTagName("tr"));
+  
+  rowsArray.sort((a, b) => {
+    let cellA, cellB;
+    
+    // Verificar se é a coluna de Ausência (que contém selects)
+    if (key === "Ausência") {
+      const selectA = a.children[colIndex].querySelector("select");
+      const selectB = b.children[colIndex].querySelector("select");
+      
+      if (selectA && selectB) {
+        const optionA = selectA.options[selectA.selectedIndex];
+        const optionB = selectB.options[selectB.selectedIndex];
+        cellA = optionA ? optionA.text.trim() : "";
+        cellB = optionB ? optionB.text.trim() : "";
+      } else {
+        cellA = a.children[colIndex].innerText.trim();
+        cellB = b.children[colIndex].innerText.trim();
+      }
+    } else {
+      cellA = a.children[colIndex].innerText.trim();
+      cellB = b.children[colIndex].innerText.trim();
+    }
+    
+    const numA = parseLocaleNumber(cellA);
+    const numB = parseLocaleNumber(cellB);
+    
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return currentOrder === "asc" ? numA - numB : numB - numA;
+    } else {
+      return currentOrder === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    }
+  });
+  
+  rowsArray.forEach(row => tableBody13.appendChild(row));
+  
+  rowsArray.forEach(row => {
+    const oldTop = rowPositions.get(row);
+    const newTop = row.getBoundingClientRect().top;
+    const deltaY = oldTop - newTop;
+    row.style.transition = "none";
+    row.style.transform = "translateY(" + deltaY + "px)";
+  });
+  
+  void tableBody13.offsetHeight;
+  
+  rowsArray.forEach(row => {
+    row.style.transition = "transform 0.5s ease";
+    row.style.transform = "translateY(0)";
+  });
+}
+
+let debounceTimer;
+function filterTable() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const inputs = filterRow.querySelectorAll("input");
+    const filterValues = Array.from(inputs).map(input => input.value.toLowerCase());
+    const rows = tableBody13.getElementsByTagName("tr");
+    
+    let visibleRows = 0;
+    let activeFilters = 0;
+    
+    // Contar filtros ativos e adicionar indicadores visuais
+    inputs.forEach((input, index) => {
+      if (input.value.trim()) {
+        activeFilters++;
+        input.classList.add("filter-active");
+        input.style.position = "relative";
+      } else {
+        input.classList.remove("filter-active");
+        input.style.position = "static";
+      }
+    });
+    
+    for (let i = 0; i < rows.length; i++) {
+      let showRow = true;
+      const cells = rows[i].getElementsByTagName("td");
+      
+      for (let j = 0; j < cells.length; j++) {
+        const filterValue = filterValues[j];
+        if (filterValue) {
+          let cellText = "";
+          
+          // Verificar se é a coluna de Ausência (que contém selects)
+          if (keys13[j] === "Ausência") {
+            const select = cells[j].querySelector("select");
+            if (select) {
+              // Usar o texto da opção selecionada
+              const selectedOption = select.options[select.selectedIndex];
+              cellText = selectedOption ? selectedOption.text.toLowerCase() : "";
+            }
+          } else {
+            cellText = cells[j].innerText.toLowerCase();
+          }
+          
+          if (cellText.indexOf(filterValue) === -1) {
+            showRow = false;
+            break;
+          }
+        }
+      }
+      
+      if (showRow) {
+        rows[i].style.display = "";
+        visibleRows++;
+        
+        // Adicionar destaque se há filtros ativos
+        if (activeFilters > 0) {
+          rows[i].classList.add("table-row-highlight");
+        } else {
+          rows[i].classList.remove("table-row-highlight");
+        }
+      } else {
+        rows[i].style.display = "none";
+        rows[i].classList.remove("table-row-highlight");
+      }
+    }
+    
+    // Mostrar feedback visual do número de resultados
+    updateFilterStatus(visibleRows, rows.length, activeFilters);
+  }, 300);
+}
+
+// Função para mostrar status do filtro
+function updateFilterStatus(visibleRows, totalRows, activeFilters) {
+  // Remover status anterior se existir
+  const existingStatus = document.querySelector(".filter-status");
+  if (existingStatus) {
+    existingStatus.remove();
+  }
+  
+  // Adicionar novo status se há filtros ativos
+  if (activeFilters > 0) {
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "filter-status";
+    statusDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+      z-index: 1000;
+      animation: slideInRight 0.3s ease;
+    `;
+    statusDiv.innerHTML = `
+      🔍 Filtros ativos: ${activeFilters}<br>
+      📊 Mostrando: ${visibleRows} de ${totalRows} registros
+    `;
+    
+    document.body.appendChild(statusDiv);
+    
+    // Remover automaticamente após 3 segundos
+    setTimeout(() => {
+      if (statusDiv.parentNode) {
+        statusDiv.style.animation = "slideOutRight 0.3s ease";
+        setTimeout(() => {
+          statusDiv.remove();
+        }, 300);
+      }
+    }, 3000);
+  }
+}
+
+// Adicionar animações CSS para o status e feedback
+const style = document.createElement("style");
+style.textContent = `
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+  
+  @keyframes slideDownFade {
+    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slideUpFade {
+    from { transform: translateX(-50%) translateY(0); opacity: 1; }
+    to { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+
+const numRows13 = datadash_13[keys13[0]].length;
+for (let i = 0; i < numRows13; i++) {
+  const row = document.createElement("tr");
+  row.style.transition = "background 0.3s";
+  
+  keys13.forEach(key => {
+    const td = document.createElement("td");
+    td.style.padding = "8px";
+    td.style.textAlign = "center";
+    td.style.border = "1px solid #ddd";
+    td.style.transition = "transform 0.2s";
+    td.addEventListener("mouseenter", () => {
+      td.style.transform = "scale(1.05)";
+    });
+    td.addEventListener("mouseleave", () => {
+      td.style.transform = "scale(1)";
+    });
+    
+    if (key === "Horas_a_receber") {
+      const totalHoras = datadash_13[key][i];
+      const horasPorDia = 7.2;
+      const dias = Math.floor(totalHoras / horasPorDia);
+      const horasRestantes = totalHoras % horasPorDia;
+      const horas = Math.floor(horasRestantes);
+      const minutos = Math.round((horasRestantes - horas) * 60);
+      let texto = "";
+      if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
+      if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
+      if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
+      td.innerText = texto || "0 minuto";
+      td.title = totalHoras + " Hrs";
+    } else if (key === "Receber") {
+      const valorReceber = datadash_13[key][i];
+      td.innerText = valorReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const ratio = Math.min(valorReceber, 1000) / 1000;
+      td.style.backgroundColor = "rgba(255, 0, 0, " + ratio + ")";
+      if (ratio > 0.7) {
+        td.style.color = "#fff";
+      }
+    } else if (key === "Abono") {
+      const valorAbono = datadash_13[key][i];
+      td.innerText = valorAbono.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const ratio = Math.min(valorAbono, 1000) / 1000;
+      td.style.backgroundColor = "rgba(0, 255, 0, " + ratio + ")";
+    } else if (key === "Turno") {
+      const turno = datadash_13[key][i];
+      td.innerText = turno === "1" ? "1° Turno" : turno === "2" ? "2° Turno" : turno;
+    } else if (key === "Ausência") {
+      // Criar coluna de ausência baseada exclusivamente no calendário
+      const select = document.createElement("select");
+      select.className = "ausencia-select";
+      select.setAttribute('data-row-index', i);
+      
+      // Opções do select
+      const opcoes = [
+        { value: "", text: "Vazio" },
+        { value: "Folga", text: "Folga" },
+        { value: "Férias", text: "Férias" },
+        { value: "Falta", text: "Falta" },
+        { value: "Atestado", text: "Atestado" }
+      ];
+      
+      opcoes.forEach(opcao => {
+        const option = document.createElement("option");
+        option.value = opcao.value;
+        option.textContent = opcao.text;
+        select.appendChild(option);
+      });
+      
+      // Verificar se há ausência programada para hoje no calendário
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+      
+      // Buscar evento para este colaborador hoje
+      const todayEvent = events.find(event => {
+        const eventDate = new Date(event.date);
+        const eventDateStr = eventDate.toISOString().split('T')[0];
+        
+        if (eventDateStr !== todayStr) return false;
+        
+        // Verificar se é o colaborador correto
+        const matricula = datadash_13.Matrícula ? datadash_13.Matrícula[i] : '';
+        const colaborador = datadash_13.Colaborador ? datadash_13.Colaborador[i] : '';
+        
+        return event.employeeId === matricula || 
+               event.employeeName.toLowerCase().includes(colaborador.toLowerCase()) ||
+               colaborador.toLowerCase().includes(event.employeeName.toLowerCase());
+      });
+      
+      // Definir valor baseado no evento do calendário
+      if (todayEvent) {
+        const absenceMap = {
+          'folga': 'Folga',
+          'ferias': 'Férias',
+          'atestado': 'Atestado',
+          'falta': 'Falta'
+        };
+        const absenceValue = absenceMap[todayEvent.absenceType] || todayEvent.absenceType;
+        select.value = absenceValue;
+      } else {
+        select.value = ""; // Vazio por padrão
+      }
+      
+      // Função para atualizar classes CSS
+      const updateSelectClass = () => {
+        const value = select.value.toLowerCase();
+        
+        // Remover todas as classes de tipo
+        select.classList.remove("folga", "falta", "ferias", "atestado");
+        
+        // Adicionar classe baseada no valor
+        if (value) {
+          select.classList.add(value);
+        }
+      };
+      
+      // Aplicar classe inicial
+      updateSelectClass();
+      
+      // Event listener para mudanças manuais
+      select.addEventListener("change", function() {
+        const rowIndex = this.getAttribute('data-row-index');
+        const matricula = datadash_13.Matrícula ? datadash_13.Matrícula[rowIndex] : '';
+        const colaborador = datadash_13.Colaborador ? datadash_13.Colaborador[rowIndex] : '';
+        
+        // Atualizar classes CSS
+        updateSelectClass();
+        
+        // Adicionar animação de mudança
+        this.classList.add("changed");
+        setTimeout(() => {
+          this.classList.remove("changed");
+        }, 300);
+        
+        // Se o usuário mudou manualmente, criar/atualizar evento no calendário
+        if (this.value && this.value !== "") {
+          createCalendarEventFromTableChange(matricula, colaborador, this.value);
+        } else {
+          // Se definiu como vazio, remover evento do calendário se existir
+          removeCalendarEventFromTableChange(matricula, colaborador);
+        }
+        
+        // Mostrar feedback
+        showTableChangeNotification(colaborador, this.value);
+        
+        console.log(`Ausência alterada manualmente: ${colaborador} - ${this.value}`);
+      });
+      
+      td.appendChild(select);
+      td.style.padding = "4px";
+    } else {
+      td.innerText = datadash_13[key][i];
+      
+      // Adicionar tooltip se o texto for longo
+      if (key === "Colaborador" || key === "Cargo") {
+        const texto = datadash_13[key][i];
+        if (texto && texto.length > 20) {
+          td.title = texto;
+        }
+      }
+    }
+    
+    row.appendChild(td);
+  });
+  
+  tableBody13.appendChild(row);
+}
+
+// variaveis
+
+document.getElementById("Total_a_receber").innerText =
+  datadash_15.Total_a_receber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+document.getElementById("Total_de_Abono").innerText =
+  datadash_15.Total_de_Abono.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+document.getElementById("Total_de_colaboradores_a_receber").innerText = datadash_15.Total_de_colaboradores_a_receber;
+document.getElementById("Total_de_colaboradores_com_abono").innerText = datadash_15.Total_de_colaboradores_com_abono;
+
+
+
+var combined = datadash_4.Horas_totais.map(function(value, index) {
+  return { value: value, cargo: datadash_4.Cargo[index] };
+});
+
+
+combined.sort(function(a, b) {
+  return b.value - a.value;
+});
+
+
+var sortedValues = combined.map(function(item) { return item.value; });
+var sortedLabels = combined.map(function(item) { return item.cargo; });
+
+
+
+var dadosCombinados = datadash_6.Horas_totais_a_receber.map(function(valor, index) {
+  return {
+    cargo: datadash_6.Cargo[index],
+    horas: valor,
+    valorAReceber: datadash_9.Valor_a_receber[index]
+  };
+});
+
+dadosCombinados.sort(function(a, b) {
+  return b.horas - a.horas;
+});
+
+
+var sortedHorasTotais = dadosCombinados.map(function(item) { return item.horas; });
+var sortedCargos = dadosCombinados.map(function(item) { return item.cargo; });
+var sortedValorAReceber = dadosCombinados.map(function(item) { return item.valorAReceber; });
+
+
+datadash_6.Horas_totais_a_receber = sortedHorasTotais;
+datadash_6.Cargo = sortedCargos;
+datadash_9.Valor_a_receber = sortedValorAReceber;
+
+      
+
+function calcularCompensacao() {
+  // Calcular compensação baseado exclusivamente nos eventos do calendário - APENAS DO DIA ATUAL
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  const contadores = {
+    folga: 0,
+    ferias: 0,
+    atestado: 0,
+    falta: 0
+  };
+
+  // Filtrar e contar apenas os eventos de hoje
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+    return eventDateStr === todayStr;
+  });
+
+  todayEvents.forEach(event => {
+    const absenceType = event.absenceType ? event.absenceType.toLowerCase() : '';
+    
+    if (absenceType === 'folga') {
+      contadores.folga++;
+    } else if (absenceType === 'ferias') {
+      contadores.ferias++;
+    } else if (absenceType === 'atestado') {
+      contadores.atestado++;
+    } else if (absenceType === 'falta') {
+      contadores.falta++;
+    }
+  });
+
+  console.log(`📊 Contadores de ausências para hoje (${todayStr}):`, contadores);
+  return contadores;
+}
+
+// Função para criar evento no calendário quando mudança é feita na tabela
+function createCalendarEventFromTableChange(matricula, colaborador, absenceType) {
+  const today = new Date();
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  
+  // Mapear tipos de ausência da tabela para o calendário
+  const absenceMap = {
+    'Folga': 'folga',
+    'Férias': 'ferias',
+    'Atestado': 'atestado',
+    'Falta': 'falta'
+  };
+  
+  const calendarAbsenceType = absenceMap[absenceType] || absenceType.toLowerCase();
+  
+  // Verificar se já existe evento para este colaborador hoje
+  const existingEventIndex = events.findIndex(event => {
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    
+    return eventDateStr === todayStr && 
+           (event.employeeId === matricula || 
+            event.employeeName.toLowerCase().includes(colaborador.toLowerCase()));
+  });
+  
+  const newEvent = {
+    id: Date.now(),
+    date: today.toISOString(),
+    employeeId: matricula,
+    employeeName: `${matricula} - ${colaborador}`,
+    absenceType: calendarAbsenceType,
+    notes: 'Criado pela alteração manual na tabela',
+    createdAt: new Date().toISOString(),
+    source: 'table'
+  };
+  
+  if (existingEventIndex >= 0) {
+    // Atualizar evento existente
+    events[existingEventIndex] = { ...events[existingEventIndex], ...newEvent };
+    console.log(`Evento atualizado no calendário: ${colaborador} - ${absenceType}`);
+  } else {
+    // Criar novo evento
+    events.push(newEvent);
+    console.log(`Novo evento criado no calendário: ${colaborador} - ${absenceType}`);
+  }
+  
+  // Salvar no localStorage
+  localStorage.setItem('calendar_events', JSON.stringify(events));
+  
+  // Atualizar array global
+  calendarEvents = events;
+}
+
+// Função para remover evento do calendário quando mudança é feita na tabela
+function removeCalendarEventFromTableChange(matricula, colaborador) {
+  const today = new Date();
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  
+  // Filtrar eventos removendo o de hoje para este colaborador
+  const filteredEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Manter eventos que não são de hoje ou não são deste colaborador
+    return !(eventDateStr === todayStr && 
+             (event.employeeId === matricula || 
+              event.employeeName.toLowerCase().includes(colaborador.toLowerCase())));
+  });
+  
+  if (filteredEvents.length !== events.length) {
+    console.log(`Evento removido do calendário: ${colaborador}`);
+    
+    // Salvar no localStorage
+    localStorage.setItem('calendar_events', JSON.stringify(filteredEvents));
+    
+    // Atualizar array global
+    calendarEvents = filteredEvents;
+  }
+}
+
+// Função para mostrar notificação de mudança na tabela
+function showTableChangeNotification(colaborador, absenceType) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 1002;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    max-width: 300px;
+  `;
+  
+  const typeEmoji = {
+    'Folga': '🏖️',
+    'Férias': '✈️',
+    'Atestado': '🏥',
+    'Falta': '❌',
+    '': '⭕'
+  };
+  
+  const message = absenceType ? 
+    `Ausência definida: ${absenceType}` : 
+    'Ausência removida';
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">${typeEmoji[absenceType] || '📋'}</span>
+      <div>
+        <strong>${message}</strong><br>
+        <small>${colaborador}</small><br>
+        <small>Sincronizado com calendário</small>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Mostrar notificação
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Remover notificação após 3 segundos
+  setTimeout(() => {
+    notification.style.transform = 'translateX(-100%)';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 3000);
+}
+
+// Função para atualizar todas as ausências da tabela baseado no calendário
+function refreshTableAbsencesFromCalendar() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  
+  // Filtrar eventos para hoje
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+    return eventDateStr === todayStr;
+  });
+  
+  console.log(`Atualizando tabela com ${todayEvents.length} eventos do calendário para hoje`);
+  
+  // Atualizar todos os selects de ausência
+  const ausenciaSelects = document.querySelectorAll('.ausencia-select');
+  
+  ausenciaSelects.forEach(select => {
+    const rowIndex = select.getAttribute('data-row-index');
+    const matricula = datadash_13.Matrícula ? datadash_13.Matrícula[rowIndex] : '';
+    const colaborador = datadash_13.Colaborador ? datadash_13.Colaborador[rowIndex] : '';
+    
+    // Buscar evento para este colaborador
+    const event = todayEvents.find(event => {
+      return event.employeeId === matricula || 
+             event.employeeName.toLowerCase().includes(colaborador.toLowerCase()) ||
+             colaborador.toLowerCase().includes(event.employeeName.toLowerCase());
+    });
+    
+    if (event) {
+      // Mapear tipo de ausência do calendário para a tabela
+      const absenceMap = {
+        'folga': 'Folga',
+        'ferias': 'Férias',
+        'atestado': 'Atestado',
+        'falta': 'Falta'
+      };
+      
+      const absenceValue = absenceMap[event.absenceType] || event.absenceType;
+      
+      if (select.value !== absenceValue) {
+        select.value = absenceValue;
+        
+        // Atualizar classes CSS
+        select.classList.remove("folga", "falta", "ferias", "atestado");
+        if (absenceValue) {
+          select.classList.add(absenceValue.toLowerCase());
+        }
+        
+        console.log(`Ausência atualizada: ${colaborador} - ${absenceValue}`);
+      }
+    } else {
+      // Não há evento, definir como vazio
+      if (select.value !== "") {
+        select.value = "";
+        select.classList.remove("folga", "falta", "ferias", "atestado");
+      }
+    }
+  });
+}
+
+// Função para mostrar feedback de salvamento
+function mostrarFeedbackSalvamento() {
+  // Remover feedback anterior se existir
+  const existingFeedback = document.querySelector(".save-feedback");
+  if (existingFeedback) {
+    existingFeedback.remove();
+  }
+  
+  const feedbackDiv = document.createElement("div");
+  feedbackDiv.className = "save-feedback";
+  feedbackDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+    z-index: 1001;
+    animation: slideDownFade 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+  
+  feedbackDiv.innerHTML = `
+    <span style="font-size: 16px;">💾</span>
+    <span>Alteração salva automaticamente!</span>
+  `;
+  
+  document.body.appendChild(feedbackDiv);
+  
+  // Remover automaticamente após 2 segundos
+  setTimeout(() => {
+    if (feedbackDiv.parentNode) {
+      feedbackDiv.style.animation = "slideUpFade 0.3s ease";
+      setTimeout(() => {
+        feedbackDiv.remove();
+      }, 300);
+    }
+  }, 2000);
+}
+
+// Função para atualizar o modal de compensação se estiver aberto
+function atualizarModalCompensacao() {
+  const modal = document.getElementById('compensacaoModal');
+  if (modal.classList.contains('show')) {
+    // Reabrir o modal com dados atualizados
+    openCompensacaoModal();
+  }
+}
+
+// Função para gerar relatório detalhado de ausências do calendário
+function gerarRelatorioAusencias() {
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  const today = new Date();
+  
+  // Agrupar eventos por mês
+  const eventosPorMes = {};
+  
+  events.forEach(event => {
+    const eventDate = new Date(event.date);
+    const mesAno = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!eventosPorMes[mesAno]) {
+      eventosPorMes[mesAno] = {
+        folga: 0,
+        ferias: 0,
+        atestado: 0,
+        falta: 0,
+        eventos: []
+      };
+    }
+    
+    const tipo = event.absenceType || 'outros';
+    if (eventosPorMes[mesAno][tipo] !== undefined) {
+      eventosPorMes[mesAno][tipo]++;
+    }
+    
+    eventosPorMes[mesAno].eventos.push(event);
+  });
+  
+  console.log('📊 RELATÓRIO DETALHADO DE AUSÊNCIAS (CALENDÁRIO)');
+  console.log('='.repeat(50));
+  
+  Object.keys(eventosPorMes)
+    .sort()
+    .forEach(mesAno => {
+      const dados = eventosPorMes[mesAno];
+      const [ano, mes] = mesAno.split('-');
+      const nomesMeses = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      const nomeMes = nomesMeses[parseInt(mes) - 1];
+      
+      console.log(`\n📅 ${nomeMes} ${ano}`);
+      console.log(`   🏖️ Folgas: ${dados.folga}`);
+      console.log(`   ✈️ Férias: ${dados.ferias}`);
+      console.log(`   🏥 Atestados: ${dados.atestado}`);
+      console.log(`   ⚠️ Faltas: ${dados.falta}`);
+      console.log(`   📊 Total: ${dados.eventos.length}`);
+    });
+  
+  const total = calcularCompensacao();
+  console.log('\n' + '='.repeat(50));
+  console.log('📈 RESUMO GERAL:');
+  console.log(`   Total de eventos: ${events.length}`);
+  console.log(`   🏖️ Total Folgas: ${total.folga}`);
+  console.log(`   ✈️ Total Férias: ${total.ferias}`);
+  console.log(`   🏥 Total Atestados: ${total.atestado}`);
+  console.log(`   ⚠️ Total Faltas: ${total.falta}`);
+  console.log('='.repeat(50));
+  
+  return eventosPorMes;
+}
+
+// Função para resetar todas as ausências do calendário
+function resetarAusenciasCalendario() {
+  if (confirm('Tem certeza que deseja resetar TODOS os eventos do calendário? Esta ação removerá todas as ausências registradas e não pode ser desfeita.')) {
+    localStorage.removeItem('calendar_events');
+    calendarEvents = [];
+    
+    // Atualizar a tabela
+    refreshTableAbsencesFromCalendar();
+    
+    // Mostrar feedback
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 1003;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    `;
+    
+    notification.innerHTML = `
+      <div style="font-size: 24px; margin-bottom: 10px;">🗑️</div>
+      <strong>Todos os eventos foram removidos!</strong><br>
+      <small>Calendário e tabela resetados</small>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+    
+    console.log('🗑️ Todos os eventos do calendário foram removidos');
+  }
+}
+
+// Função para obter os dados atualizados baseados no calendário
+function obterDadosAtualizados() {
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  const today = new Date();
+  
+  return {
+    eventos: events,
+    totalEventos: events.length,
+    contadores: calcularCompensacao(),
+    eventosHoje: events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate.toDateString() === today.toDateString();
+    }).length,
+    eventosFuturos: events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate > today;
+    }).length,
+    eventosSalvos: localStorage.getItem('calendar_events') ? true : false,
+    dataSource: 'calendar_exclusive'
+  };
+}
+
+// Função para resetar todas as ausências para vazio
+function resetarAusencias() {
+  if (confirm('Tem certeza que deseja resetar todas as ausências para "Vazio"? Esta alteração será salva permanentemente.')) {
+    const selects = document.querySelectorAll('.ausencia-select');
+    selects.forEach((select, index) => {
+      select.value = "";
+      datadash_13.Ausência[index] = "nan";
+      select.classList.remove("folga", "falta", "ferias", "atestado");
+    });
+    
+    // Salvar as alterações
+    salvarDadosAusencias();
+    
+    // Atualizar modal se estiver aberto
+    atualizarModalCompensacao();
+    
+    // Mostrar feedback
+    mostrarFeedbackSalvamento();
+    
+    console.log('Todas as ausências foram resetadas para vazio e salvas');
+  }
+}
+
+// Função para abrir o modal de compensação
+function openCompensacaoModal() {
+  console.log('🔷 Abrindo modal de compensação...');
+  const modal = document.getElementById('compensacaoModal');
+  const compensacaoData = document.getElementById('compensacaoData');
+  const totalCompensacao = document.getElementById('totalCompensacao');
+  
+  if (!modal || !compensacaoData || !totalCompensacao) {
+    console.error('❌ Elementos do modal não encontrados!');
+    return;
+  }
+  
+  const dados = calcularCompensacao();
+  console.log('📊 Dados calculados:', dados);
+  const total = dados.folga + dados.ferias + dados.atestado + dados.falta;
+  
+  // Obter estatísticas adicionais do calendário
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  // Contar eventos por período
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date).toISOString().split('T')[0];
+    return eventDate === todayStr;
+  }).length;
+  
+  const futureEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate > today;
+  }).length;
+  
+  const pastEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate < today;
+  }).length;
+  
+  compensacaoData.innerHTML = `
+    <div style="margin-bottom: 15px; text-align: center; padding: 10px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border-radius: 8px;">
+      <h4 style="margin: 0; font-size: 16px;">📅 Ausências de Hoje - ${today.toLocaleDateString('pt-BR')}</h4>
+    </div>
+    
+    <div class="compensacao-item folga">
+      <div class="compensacao-item-header">
+        <div class="compensacao-icon">🏖️</div>
+        <div class="compensacao-info">
+          <h3 class="compensacao-title">Folga</h3>
+          <p class="compensacao-subtitle">Dias de descanso (hoje)</p>
+        </div>
+      </div>
+      <div class="compensacao-count">${dados.folga}</div>
+    </div>
+    
+    <div class="compensacao-item ferias">
+      <div class="compensacao-item-header">
+        <div class="compensacao-icon">✈️</div>
+        <div class="compensacao-info">
+          <h3 class="compensacao-title">Férias</h3>
+          <p class="compensacao-subtitle">Período de descanso (hoje)</p>
+        </div>
+      </div>
+      <div class="compensacao-count">${dados.ferias}</div>
+    </div>
+    
+    <div class="compensacao-item atestado">
+      <div class="compensacao-item-header">
+        <div class="compensacao-icon">🏥</div>
+        <div class="compensacao-info">
+          <h3 class="compensacao-title">Atestado</h3>
+          <p class="compensacao-subtitle">Licença médica (hoje)</p>
+        </div>
+      </div>
+      <div class="compensacao-count">${dados.atestado}</div>
+    </div>
+    
+    <div class="compensacao-item falta">
+      <div class="compensacao-item-header">
+        <div class="compensacao-icon">⚠️</div>
+        <div class="compensacao-info">
+          <h3 class="compensacao-title">Falta</h3>
+          <p class="compensacao-subtitle">Ausência não justificada (hoje)</p>
+        </div>
+      </div>
+      <div class="compensacao-count">${dados.falta}</div>
+    </div>
+    
+    <div class="compensacao-summary" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; border-left: 4px solid #17a2b8;">
+      <h4 style="margin: 0 0 10px 0; color: #495057;">📊 Estatísticas Gerais do Calendário</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 14px;">
+        <div style="text-align: center;">
+          <strong style="color: #007bff;">${todayEvents}</strong><br>
+          <small>Hoje</small>
+        </div>
+        <div style="text-align: center;">
+          <strong style="color: #17a2b8;">${futureEvents}</strong><br>
+          <small>Futuros</small>
+        </div>
+        <div style="text-align: center;">
+          <strong style="color: #6c757d;">${pastEvents}</strong><br>
+          <small>Passados</small>
+        </div>
+        <div style="text-align: center;">
+          <strong style="color: #28a745;">${events.length}</strong><br>
+          <small>Total Geral</small>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  totalCompensacao.innerHTML = `
+    <div style="text-align: center;">
+      <strong>Total de Ausências Hoje: ${total} evento${total !== 1 ? 's' : ''}</strong><br>
+      <small style="opacity: 0.8;">� Dados baseados exclusivamente no calendário</small><br>
+      <small style="opacity: 0.6;">Última atualização: ${new Date().toLocaleString('pt-BR')}</small>
+    </div>
+  `;
+  
+  modal.classList.add('show');
+  console.log('✅ Modal aberto com sucesso');
+  
+  // Adicionar animação de entrada nos itens com Animate.css
+  setTimeout(() => {
+    const items = document.querySelectorAll('.compensacao-item');
+    console.log(`🎭 Animando ${items.length} itens`);
+    items.forEach((item, index) => {
+      setTimeout(() => {
+        item.classList.add('animate__animated', 'animate__fadeInUp');
+      }, index * 150);
+    });
+  }, 300);
+}
+
+// Função para fechar o modal
+function closeModal() {
+  console.log('🔶 Fechando modal de compensação...');
+  const modal = document.getElementById('compensacaoModal');
+  
+  if (!modal) {
+    console.error('❌ Modal não encontrado para fechar!');
+    return;
+  }
+  
+  modal.classList.remove('show');
+  console.log('✅ Modal fechado com sucesso');
+  
+  // Remover as classes de animação para reset
+  setTimeout(() => {
+    const items = document.querySelectorAll('.compensacao-item');
+    items.forEach(item => {
+      item.classList.remove('animate__animated', 'animate__fadeInUp');
+    });
+  }, 500);
+}
+
+// Fechar modal quando clicar fora dele
+window.onclick = function(event) {
+  const modal = document.getElementById('compensacaoModal');
+  if (event.target === modal) {
+    console.log('🔶 Fechando modal por clique externo');
+    modal.classList.remove('show');
+  }
+}
+
+// Fechar modal com a tecla ESC
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeModal();
+  }
+});
+
+// Função para atualizar a data atual no botão calendário
+function updateCurrentDate() {
+  const now = new Date();
+  const options = { 
+    day: '2-digit', 
+    month: 'short', 
+    year: 'numeric' 
+  };
+  const dateString = now.toLocaleDateString('pt-BR', options);
+  const currentDateElement = document.getElementById('currentDate');
+  if (currentDateElement) {
+    currentDateElement.textContent = dateString;
+  }
+}
+
+// Atualizar a data quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+  updateCurrentDate();
+  // Atualizar a data a cada minuto
+  setInterval(updateCurrentDate, 60000);
+  
+  // Aguardar um pouco para garantir que os dados estejam carregados
+  setTimeout(function() {
+    const employees = getEmployeesFromData();
+    console.log('Colaboradores disponíveis:', employees.length);
+  }, 1000);
+});
+
+// Funções para o Modal de Opções do Calendário
+function openCalendarModal() {
+  const modal = document.getElementById('calendarOptionsModal');
+  modal.classList.add('show');
+}
+
+function closeCalendarModal() {
+  const modal = document.getElementById('calendarOptionsModal');
+  modal.classList.remove('show');
+}
+
+function selectOption(option) {
+  closeCalendarModal();
+  
+  if (option === 'database') {
+    // Aqui você pode adicionar a lógica para alimentar o banco de dados
+    alert('Opção: Alimentar Banco de Dados selecionada!');
+    // Exemplo: abrir modal de upload ou redirecionar para página de dados
+  } else if (option === 'calendar') {
+    // Abrir o calendário
+    openCalendarViewModal();
+  }
+}
+
+// Variáveis globais para o calendário
+let currentCalendarDate = new Date();
+let selectedDate = null;
+let calendarEvents = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+
+// Funções para o Modal do Calendário
+function openCalendarViewModal() {
+  const modal = document.getElementById('calendarModal');
+  modal.classList.add('show');
+  renderCalendar();
+}
+
+function closeCalendarViewModal() {
+  const modal = document.getElementById('calendarModal');
+  modal.classList.remove('show');
+}
+
+function renderCalendar() {
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  
+  const currentMonth = document.getElementById('currentMonth');
+  const calendarDays = document.getElementById('calendarDays');
+  
+  currentMonth.textContent = `${monthNames[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+  
+  // Limpar dias existentes
+  calendarDays.innerHTML = '';
+  
+  // Primeiro dia do mês
+  const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+  const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
+  
+  // Dias do mês anterior para completar a primeira semana
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+  
+  // Gerar 42 dias (6 semanas)
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day';
+    dayElement.textContent = date.getDate();
+    
+    // Verificar se é do mês atual
+    if (date.getMonth() !== currentCalendarDate.getMonth()) {
+      dayElement.classList.add('other-month');
+    }
+    
+    // Verificar se é hoje
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+      dayElement.classList.add('today');
+    }
+    
+    // Verificar se está selecionado
+    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+      dayElement.classList.add('selected');
+    }
+    
+    // Verificar se há eventos neste dia
+    const hasEvent = calendarEvents.some(event => 
+      new Date(event.date).toDateString() === date.toDateString()
+    );
+    if (hasEvent) {
+      dayElement.classList.add('has-event');
+    }
+    
+    // Adicionar evento de clique
+    dayElement.addEventListener('click', () => {
+      // Remover seleção anterior
+      document.querySelectorAll('.calendar-day.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      
+      // Adicionar seleção atual
+      dayElement.classList.add('selected');
+      selectedDate = new Date(date);
+      
+      // Abrir modal de evento
+      openEventModal(date);
+    });
+    
+    calendarDays.appendChild(dayElement);
+  }
+}
+
+function goToToday() {
+  currentCalendarDate = new Date();
+  selectedDate = new Date();
+  renderCalendar();
+}
+
+// Event listeners para navegação do calendário
+document.addEventListener('DOMContentLoaded', function() {
+  const prevMonthBtn = document.getElementById('prevMonth');
+  const nextMonthBtn = document.getElementById('nextMonth');
+  
+  if (prevMonthBtn) {
+    prevMonthBtn.addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+  }
+  
+  if (nextMonthBtn) {
+    nextMonthBtn.addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+  }
+});
+
+// Funções para o Modal de Evento
+function openEventModal(date) {
+  const modal = document.getElementById('eventModal');
+  const eventDateInput = document.getElementById('eventDate');
+  const employeeInput = document.getElementById('employeeInput');
+  
+  // Formatar a data para exibição
+  const formattedDate = date.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  
+  eventDateInput.value = formattedDate;
+  
+  // Preencher o datalist de colaboradores
+  populateEmployeeDatalist();
+  
+  // Configurar o botão de alternância
+  setupToggleButton();
+  
+  modal.classList.add('show');
+}
+
+function closeEventModal() {
+  const modal = document.getElementById('eventModal');
+  modal.classList.remove('show');
+  
+  // Limpar o formulário
+  document.getElementById('employeeInput').value = '';
+  document.getElementById('employeeSelect').value = '';
+  document.getElementById('absenceType').value = '';
+  document.getElementById('eventNotes').value = '';
+}
+
+function populateEmployeeSelect() {
+  const employeeSelect = document.getElementById('employeeSelect');
+  
+  // Limpar opções existentes (exceto a primeira)
+  employeeSelect.innerHTML = '<option value="">Selecione um colaborador...</option>';
+  
+  // Obter colaboradores dos dados existentes (do sistema)
+  const employees = getEmployeesFromData();
+  
+  employees.forEach(employee => {
+    const option = document.createElement('option');
+    option.value = employee.matricula;
+    option.textContent = `${employee.matricula} - ${employee.nome}`;
+    employeeSelect.appendChild(option);
+  });
+}
+
+function populateEmployeeDatalist() {
+  const employeeList = document.getElementById('employeeList');
+  
+  // Limpar opções existentes
+  employeeList.innerHTML = '';
+  
+  // Obter colaboradores dos dados existentes
+  const employees = getEmployeesFromData();
+  
+  employees.forEach(employee => {
+    const option = document.createElement('option');
+    option.value = employee.matricula;
+    option.textContent = `${employee.matricula} - ${employee.nome}`;
+    employeeList.appendChild(option);
+  });
+  
+  // Também preencher o select (caso o usuário alterne)
+  populateEmployeeSelect();
+  
+  // Adicionar evento de input para filtrar em tempo real
+  const employeeInput = document.getElementById('employeeInput');
+  employeeInput.addEventListener('input', function() {
+    const searchValue = this.value.toLowerCase();
+    const filtered = employees.filter(emp => 
+      emp.matricula.toLowerCase().includes(searchValue) ||
+      emp.nome.toLowerCase().includes(searchValue)
+    );
+    
+    // Atualizar o datalist com os resultados filtrados
+    employeeList.innerHTML = '';
+    filtered.forEach(employee => {
+      const option = document.createElement('option');
+      option.value = employee.matricula;
+      option.textContent = `${employee.matricula} - ${employee.nome}`;
+      employeeList.appendChild(option);
+    });
+  });
+}
+
+function setupToggleButton() {
+  const toggleBtn = document.getElementById('toggleEmployeeSelect');
+  const employeeInput = document.getElementById('employeeInput');
+  const employeeSelect = document.getElementById('employeeSelect');
+  const container = document.querySelector('.employee-input-container');
+  
+  let isSelectMode = false;
+  
+  toggleBtn.addEventListener('click', function() {
+    if (isSelectMode) {
+      // Trocar para modo input
+      employeeInput.style.display = 'block';
+      employeeSelect.style.display = 'none';
+      container.style.display = 'flex';
+      toggleBtn.textContent = '📋';
+      toggleBtn.title = 'Alternar para lista';
+      isSelectMode = false;
+    } else {
+      // Trocar para modo select
+      employeeInput.style.display = 'none';
+      employeeSelect.style.display = 'block';
+      container.style.display = 'block';
+      toggleBtn.textContent = '✏️';
+      toggleBtn.title = 'Alternar para digitação';
+      isSelectMode = true;
+    }
+  });
+}
+
+function testDataAccess() {
+  console.log('--- TESTE DE ACESSO AOS DADOS ---');
+  console.log('typeof datadash_13:', typeof datadash_13);
+  
+  if (typeof datadash_13 !== 'undefined') {
+    console.log('datadash_13 existe');
+    console.log('datadash_13.Matrícula:', datadash_13.Matrícula ? 'existe' : 'não existe');
+    console.log('datadash_13.Colaborador:', datadash_13.Colaborador ? 'existe' : 'não existe');
+    
+    if (datadash_13.Matrícula && datadash_13.Colaborador) {
+      console.log('Quantidade de matrículas:', datadash_13.Matrícula.length);
+      console.log('Quantidade de colaboradores:', datadash_13.Colaborador.length);
+      console.log('Primeiras 5 matrículas:', datadash_13.Matrícula.slice(0, 5));
+      console.log('Primeiros 5 colaboradores:', datadash_13.Colaborador.slice(0, 5));
+    }
+  } else {
+    console.log('datadash_13 não existe');
+  }
+  
+  console.log('--- FIM DO TESTE ---');
+}
+
+function getEmployeesFromData() {
+  // Chamar teste primeiro
+  testDataAccess();
+  
+  // Extrair colaboradores únicos dos dados existentes
+  const employees = [];
+  
+  // Verificar se datadash_13 existe e tem os dados necessários
+  try {
+    if (typeof datadash_13 !== 'undefined' && datadash_13.Matrícula && datadash_13.Colaborador) {
+      const matriculas = datadash_13.Matrícula;
+      const colaboradores = datadash_13.Colaborador;
+      const uniqueEmployees = {};
+      
+      // Iterar por todos os índices
+      for (let i = 0; i < matriculas.length && i < colaboradores.length; i++) {
+        const matricula = matriculas[i];
+        const colaborador = colaboradores[i];
+        
+        // Verificar se a matrícula e colaborador existem e não são "nan"
+        if (matricula && colaborador && 
+            matricula.toString().trim() !== "nan" && 
+            colaborador.toString().trim() !== "nan" && 
+            matricula.toString().trim() !== "" &&
+            colaborador.toString().trim() !== "" &&
+            !uniqueEmployees[matricula]) {
+          uniqueEmployees[matricula] = {
+            matricula: matricula.toString().trim(),
+            nome: colaborador.toString().trim()
+          };
+        }
+      }
+      
+      // Converter para array
+      Object.values(uniqueEmployees).forEach(emp => employees.push(emp));
+      console.log('Colaboradores únicos encontrados:', employees.length);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados dos colaboradores:', error);
+  }
+  
+  if (employees.length === 0) {
+    console.log('Usando dados de exemplo');
+    employees.push(
+      { matricula: '001', nome: 'João Silva' },
+      { matricula: '002', nome: 'Maria Santos' },
+      { matricula: '003', nome: 'Pedro Oliveira' },
+      { matricula: '004', nome: 'Ana Costa' },
+      { matricula: '005', nome: 'Carlos Pereira' }
+    );
+  }
+  
+  return employees.sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+// Função para limpar indicadores antigos
+function clearAbsenceIndicators() {
+  const indicators = document.querySelectorAll('.absence-indicator');
+  indicators.forEach(indicator => indicator.remove());
+}
+
+// Função para adicionar indicadores visuais de ausências futuras
+function addAbsenceIndicators() {
+  // Limpar indicadores antigos
+  clearAbsenceIndicators();
+  
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  const today = new Date();
+  
+  // Obter eventos futuros (próximos 7 dias)
+  const futureEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const daysDiff = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+    return daysDiff > 0 && daysDiff <= 7;
+  });
+  
+  if (futureEvents.length > 0) {
+    const tableRows = document.querySelectorAll('#tableBody13 tr');
+    
+    futureEvents.forEach(event => {
+      // Buscar a linha correspondente ao colaborador
+      for (let i = 0; i < tableRows.length; i++) {
+        const row = tableRows[i];
+        const matriculaCell = row.cells[0];
+        
+        if (matriculaCell && matriculaCell.textContent.trim() === event.employeeId) {
+          // Adicionar indicador visual na linha
+          const eventDate = new Date(event.date);
+          const daysDiff = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+          
+          // Criar elemento de indicador
+          const indicator = document.createElement('div');
+          indicator.className = 'absence-indicator';
+          indicator.style.cssText = `
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+            animation: pulse 2s infinite;
+          `;
+          indicator.title = `Ausência programada: ${getAbsenceTypeName(event.absenceType)} em ${eventDate.toLocaleDateString('pt-BR')} (${daysDiff} dia${daysDiff > 1 ? 's' : ''})`;
+          
+          // Adicionar ao primeiro cell (matrícula)
+          if (matriculaCell.style.position !== 'relative') {
+            matriculaCell.style.position = 'relative';
+          }
+          
+          matriculaCell.appendChild(indicator);
+          
+          break;
+        }
+      }
+    });
+  }
+}
+
+// Função para adicionar estilos CSS do indicador
+function addIndicatorStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .absence-indicator:hover {
+      transform: scale(1.3) !important;
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Função para atualizar ausências na tabela baseado nos eventos do calendário
+function updateTableAbsences() {
+  console.log('🔄 Atualizando ausências da tabela baseado exclusivamente no calendário...');
+  refreshTableAbsencesFromCalendar();
+  
+  // Adicionar indicadores para ausências futuras
+  addAbsenceIndicators();
+}
+
+// Função para mostrar notificação específica de ausência aplicada
+function showAbsenceNotification(employeeName, absenceType) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 1002;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    max-width: 300px;
+  `;
+  
+  const typeEmoji = {
+    'Folga': '🏖️',
+    'Férias': '✈️',
+    'Atestado': '🏥',
+    'Falta': '❌'
+  };
+  
+  notification.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">${typeEmoji[absenceType] || '📋'}</span>
+      <div>
+        <strong>Ausência Aplicada!</strong><br>
+        <small>${employeeName}</small><br>
+        <small>Tipo: ${absenceType}</small>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Mostrar notificação
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Remover notificação após 3 segundos
+  setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 3000);
+}
+
+// Função para criar painel de resumo das ausências
+function createAbsenceSummaryPanel() {
+  // Verificar se o painel já existe
+  let panel = document.getElementById('absenceSummaryPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'absenceSummaryPanel';
+    panel.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 1000;
+      max-width: 300px;
+      min-width: 250px;
+      font-family: Arial, sans-serif;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    
+    document.body.appendChild(panel);
+  }
+  
+  return panel;
+}
+
+// Função para atualizar o painel de resumo
+function updateAbsenceSummaryPanel() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  // Obter eventos do calendário
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  
+  // Filtrar eventos para hoje
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+    return eventDateStr === todayStr;
+  });
+  
+  // Contar tipos de ausência
+  const absenceCount = {};
+  todayEvents.forEach(event => {
+    const type = event.absenceType;
+    absenceCount[type] = (absenceCount[type] || 0) + 1;
+  });
+  
+  // Mostrar painel apenas se houver ausências
+  if (todayEvents.length > 0) {
+    const panel = createAbsenceSummaryPanel();
+    
+    let content = `
+      <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div style="width: 20px; height: 20px; background: #FFD700; border-radius: 50%; margin-right: 10px;"></div>
+        <strong>Ausências Hoje</strong>
+      </div>
+      <div style="font-size: 12px; margin-bottom: 15px;">
+        ${today.toLocaleDateString('pt-BR')}
+      </div>
+    `;
+    
+    // Adicionar contadores por tipo
+    Object.keys(absenceCount).forEach(type => {
+      const count = absenceCount[type];
+      const typeName = getAbsenceTypeName(type);
+      content += `
+        <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span>${typeName}</span>
+          <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 11px;">${count}</span>
+        </div>
+      `;
+    });
+    
+    content += `
+      <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 11px;">
+        <strong>Total: ${todayEvents.length} ausência${todayEvents.length > 1 ? 's' : ''}</strong>
+      </div>
+      <div style="margin-top: 10px; text-align: right;">
+        <button onclick="hideAbsenceSummaryPanel()" style="background: none; border: 1px solid rgba(255,255,255,0.5); color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">
+          Ocultar
+        </button>
+      </div>
+    `;
+    
+    panel.innerHTML = content;
+    
+    // Mostrar painel
+    setTimeout(() => {
+      panel.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Auto-ocultar após 10 segundos
+    setTimeout(() => {
+      hideAbsenceSummaryPanel();
+    }, 10000);
+  }
+}
+
+// Função para ocultar o painel
+function hideAbsenceSummaryPanel() {
+  const panel = document.getElementById('absenceSummaryPanel');
+  if (panel) {
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      panel.remove();
+    }, 300);
+  }
+}
+
+// Função para testar manualmente a aplicação de ausências
+function testAbsenceApplication() {
+  console.log('=== TESTE DE APLICAÇÃO DE AUSÊNCIAS (CALENDÁRIO EXCLUSIVO) ===');
+  
+  // Obter dados da tabela
+  const tableRows = document.querySelectorAll('#tableBody13 tr');
+  console.log(`Linhas da tabela encontradas: ${tableRows.length}`);
+  
+  if (tableRows.length > 0) {
+    console.log('Estrutura da primeira linha:');
+    const firstRow = tableRows[0];
+    const cells = firstRow.cells;
+    
+    for (let i = 0; i < cells.length; i++) {
+      console.log(`Célula ${i}: "${cells[i].textContent.trim()}"`);
+    }
+    
+    // Verificar se há coluna de ausência
+    const ausenciaCell = firstRow.querySelector('.ausencia-select');
+    if (ausenciaCell) {
+      console.log(`✅ Coluna de ausência encontrada: "${ausenciaCell.value}" (baseada no calendário)`);
+      console.log(`Row index: ${ausenciaCell.getAttribute('data-row-index')}`);
+    } else {
+      console.log('❌ Coluna de ausência não encontrada');
+    }
+  }
+  
+  // Verificar eventos do calendário
+  const events = JSON.parse(localStorage.getItem('calendar_events') || '[]');
+  console.log(`\nEventos do calendário: ${events.length}`);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date).toISOString().split('T')[0];
+    return eventDate === today;
+  });
+  
+  console.log(`Eventos para hoje (${today}): ${todayEvents.length}`);
+  
+  events.forEach((event, index) => {
+    const eventDate = new Date(event.date).toLocaleDateString('pt-BR');
+    const isToday = new Date(event.date).toISOString().split('T')[0] === today;
+    console.log(`Evento ${index + 1}${isToday ? ' [HOJE]' : ''}: ${event.employeeName} - ${event.absenceType} em ${eventDate}`);
+  });
+  
+  // Verificar correspondência entre eventos e tabela
+  console.log('\n--- VERIFICAÇÃO DE CORRESPONDÊNCIAS ---');
+  todayEvents.forEach(event => {
+    console.log(`\nBuscando na tabela: ${event.employeeName} (ID: ${event.employeeId})`);
+    
+    let found = false;
+    for (let i = 0; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      const cells = row.cells;
+      
+      if (cells.length === 0) continue;
+      
+      const matricula = cells[0] ? cells[0].textContent.trim() : '';
+      const colaborador = cells[1] ? cells[1].textContent.trim() : '';
+      
+      if (matricula === event.employeeId || 
+          colaborador.toLowerCase().includes(event.employeeName.toLowerCase()) ||
+          event.employeeName.toLowerCase().includes(colaborador.toLowerCase())) {
+        
+        const ausenciaSelect = row.querySelector('.ausencia-select');
+        const ausenciaValue = ausenciaSelect ? ausenciaSelect.value : 'N/A';
+        
+        console.log(`✅ Encontrado na linha ${i}: ${matricula} - ${colaborador}`);
+        console.log(`   Ausência na tabela: "${ausenciaValue}"`);
+        console.log(`   Ausência do evento: "${event.absenceType}"`);
+        
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) {
+      console.log('❌ Colaborador não encontrado na tabela');
+    }
+  });
+  
+  console.log('\n=== FIM DO TESTE ===');
+  console.log('💡 As ausências agora são controladas EXCLUSIVAMENTE pelo calendário');
+  console.log('💡 datadash_13.Ausência não é mais utilizado para esta coluna');
+}
+
+// Função para verificar e atualizar ausências periodicamente
+function startAbsenceUpdater() {
+  // Adicionar funções de teste e relatório ao window para acesso via console
+  window.testAbsenceApplication = testAbsenceApplication;
+  window.gerarRelatorioAusencias = gerarRelatorioAusencias;
+  window.resetarAusenciasCalendario = resetarAusenciasCalendario;
+  window.obterDadosAtualizados = obterDadosAtualizados;
+  
+  // Atualizar imediatamente
+  updateTableAbsences();
+  
+  // Mostrar painel de resumo
+  updateAbsenceSummaryPanel();
+  
+  // Verificar a cada minuto se mudou o dia
+  setInterval(() => {
+    updateTableAbsences();
+  }, 60000); // 60 segundos
+  
+  console.log('🚀 Sistema de ausências inicializado (Calendário Exclusivo)');
+  console.log('📋 Funções disponíveis no console:');
+  console.log('   • testAbsenceApplication() - Teste do sistema');
+  console.log('   • gerarRelatorioAusencias() - Relatório detalhado');
+  console.log('   • resetarAusenciasCalendario() - Reset completo');
+  console.log('   • obterDadosAtualizados() - Status atual');
+}
+
+// Função para atualizar ausências quando um evento é salvo
+function updateAbsencesOnEventSave(event) {
+  const eventDate = new Date(event.date);
+  const today = new Date();
+  
+  console.log(`Evento salvo: ${event.employeeName} - ${event.absenceType} para ${eventDate.toLocaleDateString('pt-BR')}`);
+  
+  // Se o evento é para hoje, atualizar a tabela imediatamente
+  if (eventDate.toDateString() === today.toDateString()) {
+    console.log('Evento é para hoje - atualizando tabela imediatamente');
+    refreshTableAbsencesFromCalendar();
+    
+    // Mostrar notificação específica
+    const absenceMap = {
+      'folga': 'Folga',
+      'ferias': 'Férias',
+      'atestado': 'Atestado',
+      'falta': 'Falta'
+    };
+    const absenceValue = absenceMap[event.absenceType] || event.absenceType;
+    showAbsenceNotification(event.employeeName, absenceValue);
+  } else {
+    console.log(`Evento é para ${eventDate.toLocaleDateString('pt-BR')} - será aplicado automaticamente no dia`);
+  }
+}
+
+function saveEvent() {
+  const date = selectedDate;
+  const employeeInput = document.getElementById('employeeInput');
+  const employeeSelect = document.getElementById('employeeSelect');
+  const absenceType = document.getElementById('absenceType').value;
+  const notes = document.getElementById('eventNotes').value;
+  
+  // Determinar qual campo está sendo usado
+  let employeeValue = '';
+  let employeeName = '';
+  
+  if (employeeInput.style.display !== 'none') {
+    // Modo input
+    employeeValue = employeeInput.value.trim();
+    if (!employeeValue) {
+      alert('Por favor, digite a matrícula do colaborador.');
+      employeeInput.focus();
+      return;
+    }
+    
+    // Tentar encontrar o nome do colaborador
+    const employees = getEmployeesFromData();
+    const foundEmployee = employees.find(emp => 
+      emp.matricula === employeeValue || 
+      emp.matricula.toString() === employeeValue || 
+      emp.nome.toLowerCase().includes(employeeValue.toLowerCase())
+    );
+    
+    if (foundEmployee) {
+      employeeName = `${foundEmployee.matricula} - ${foundEmployee.nome}`;
+      employeeValue = foundEmployee.matricula;
+    } else {
+      // Se não encontrar, usar o que foi digitado
+      employeeName = employeeValue;
+    }
+  } else {
+    // Modo select
+    employeeValue = employeeSelect.value;
+    if (!employeeValue) {
+      alert('Por favor, selecione um colaborador.');
+      employeeSelect.focus();
+      return;
+    }
+    employeeName = employeeSelect.options[employeeSelect.selectedIndex].textContent;
+  }
+  
+  if (!absenceType) {
+    alert('Por favor, selecione o tipo de ausência.');
+    document.getElementById('absenceType').focus();
+    return;
+  }
+  
+  // Criar objeto do evento
+  const event = {
+    id: Date.now(), // ID único
+    date: date.toISOString(),
+    employeeId: employeeValue,
+    employeeName: employeeName,
+    absenceType: absenceType,
+    notes: notes,
+    createdAt: new Date().toISOString()
+  };
+  
+  // Adicionar ao array de eventos
+  calendarEvents.push(event);
+  
+  // Salvar no localStorage
+  localStorage.setItem('calendar_events', JSON.stringify(calendarEvents));
+  
+  // Atualizar ausências na tabela se for para hoje
+  updateAbsencesOnEventSave(event);
+  
+  // Atualizar o calendário
+  renderCalendar();
+  
+  // Fechar o modal
+  closeEventModal();
+  
+  // Mostrar confirmação
+  alert(`Evento salvo com sucesso!\nData: ${date.toLocaleDateString('pt-BR')}\nColaborador: ${employeeName}\nTipo: ${getAbsenceTypeName(absenceType)}`);
+}
+
+function getAbsenceTypeName(type) {
+  const types = {
+    'folga': '🏖️ Folga',
+    'ferias': '✈️ Férias',
+    'atestado': '🏥 Atestado',
+    'falta': '❌ Falta'
+  };
+  return types[type] || type;
+}
+
+// Inicializar verificação de ausências após carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+  // Adicionar estilos dos indicadores
+  addIndicatorStyles();
+  
+  // Aguardar a tabela ser carregada completamente
+  setTimeout(() => {
+    console.log('🚀 Inicializando sistema de ausências baseado exclusivamente no calendário...');
+    startAbsenceUpdater();
+  }, 2000);
+  
+  // Verificar se o modal não está aberto por padrão
+  const modal = document.getElementById('compensacaoModal');
+  if (modal && modal.classList.contains('show')) {
+    console.warn('⚠️ Modal estava aberto por padrão - removendo classe show');
+    modal.classList.remove('show');
+  }
+  
+  console.log('✅ Sistema inicializado - modal está fechado por padrão');
+});
+
+// Fechar modal de opções com a tecla ESC
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeCalendarModal();
+    closeCalendarViewModal();
+    closeEventModal();
+  }
+});
+
+// Fechar modal ao clicar fora dele
+window.onclick = function(event) {
+  const optionsModal = document.getElementById('calendarOptionsModal');
+  const calendarModal = document.getElementById('calendarModal');
+  const eventModal = document.getElementById('eventModal');
+  
+  if (event.target === optionsModal) {
+    closeCalendarModal();
+  }
+  
+  if (event.target === calendarModal) {
+    closeCalendarViewModal();
+  }
+  
+  if (event.target === eventModal) {
+    closeEventModal();
+  }
+}
+
+  </script>
+</body>
+</html>
