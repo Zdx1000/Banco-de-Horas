@@ -2258,6 +2258,7 @@
       </div>
       <div class="modal-footer">
         <button onclick="goToToday()" class="control-button">📅 Hoje</button>
+        <button onclick="addEventToSelectedDate()" class="control-button export-btn">➕ Adicionar Evento</button>
         <button onclick="closeCalendarViewModal()" class="control-button">Fechar</button>
       </div>
     </div>
@@ -4203,18 +4204,15 @@ function resetarAusencias() {
 
 // Função para abrir o modal de compensação
 function openCompensacaoModal() {
-  console.log('🔷 Abrindo modal de compensação...');
   const modal = document.getElementById('compensacaoModal');
   const compensacaoData = document.getElementById('compensacaoData');
   const totalCompensacao = document.getElementById('totalCompensacao');
   
   if (!modal || !compensacaoData || !totalCompensacao) {
-    console.error('❌ Elementos do modal não encontrados!');
     return;
   }
   
   const dados = calcularCompensacao();
-  console.log('📊 Dados calculados:', dados);
   const total = dados.folga + dados.ferias + dados.atestado + dados.falta;
   
   // Obter estatísticas adicionais do calendário
@@ -4318,13 +4316,12 @@ function openCompensacaoModal() {
     </div>
   `;
   
+  modal.style.display = ''; // Remover style inline
   modal.classList.add('show');
-  console.log('✅ Modal aberto com sucesso');
   
   // Adicionar animação de entrada nos itens com Animate.css
   setTimeout(() => {
     const items = document.querySelectorAll('.compensacao-item');
-    console.log(`🎭 Animando ${items.length} itens`);
     items.forEach((item, index) => {
       setTimeout(() => {
         item.classList.add('animate__animated', 'animate__fadeInUp');
@@ -4335,16 +4332,13 @@ function openCompensacaoModal() {
 
 // Função para fechar o modal
 function closeModal() {
-  console.log('🔶 Fechando modal de compensação...');
   const modal = document.getElementById('compensacaoModal');
   
   if (!modal) {
-    console.error('❌ Modal não encontrado para fechar!');
     return;
   }
   
   modal.classList.remove('show');
-  console.log('✅ Modal fechado com sucesso');
   
   // Remover as classes de animação para reset
   setTimeout(() => {
@@ -4357,17 +4351,36 @@ function closeModal() {
 
 // Fechar modal quando clicar fora dele
 window.onclick = function(event) {
-  const modal = document.getElementById('compensacaoModal');
-  if (event.target === modal) {
-    console.log('🔶 Fechando modal por clique externo');
-    modal.classList.remove('show');
+  const compensacaoModal = document.getElementById('compensacaoModal');
+  const eventModal = document.getElementById('eventModal');
+  const calendarModal = document.getElementById('calendarModal');
+  const calendarOptionsModal = document.getElementById('calendarOptionsModal');
+  
+  if (event.target === compensacaoModal) {
+    compensacaoModal.classList.remove('show');
+  }
+  if (event.target === eventModal) {
+    eventModal.classList.remove('show');
+  }
+  if (event.target === calendarModal) {
+    calendarModal.classList.remove('show');
+  }
+  if (event.target === calendarOptionsModal) {
+    calendarOptionsModal.classList.remove('show');
   }
 }
 
 // Fechar modal com a tecla ESC
 document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') {
-    closeModal();
+    // Fechar qualquer modal que esteja aberto
+    const modals = ['compensacaoModal', 'eventModal', 'calendarModal', 'calendarOptionsModal'];
+    modals.forEach(modalId => {
+      const modal = document.getElementById(modalId);
+      if (modal && modal.classList.contains('show')) {
+        modal.classList.remove('show');
+      }
+    });
   }
 });
 
@@ -4388,6 +4401,16 @@ function updateCurrentDate() {
 
 // Atualizar a data quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
+  // ✅ CORREÇÃO: Garantir que todos os modais estejam fechados na inicialização
+  const modalIds = ['compensacaoModal', 'eventModal', 'calendarModal', 'calendarOptionsModal'];
+  modalIds.forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('show');
+      modal.style.display = 'none'; // Forçar para garantir
+    }
+  });
+  
   updateCurrentDate();
   // Atualizar a data a cada minuto
   setInterval(updateCurrentDate, 60000);
@@ -4395,13 +4418,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Aguardar um pouco para garantir que os dados estejam carregados
   setTimeout(function() {
     const employees = getEmployeesFromData();
-    console.log('Colaboradores disponíveis:', employees.length);
   }, 1000);
 });
 
 // Funções para o Modal de Opções do Calendário
 function openCalendarModal() {
   const modal = document.getElementById('calendarOptionsModal');
+  modal.style.display = ''; // Remover style inline
   modal.classList.add('show');
 }
 
@@ -4431,6 +4454,7 @@ let calendarEvents = JSON.parse(localStorage.getItem('calendar_events') || '[]')
 // Funções para o Modal do Calendário
 function openCalendarViewModal() {
   const modal = document.getElementById('calendarModal');
+  modal.style.display = ''; // Remover style inline
   modal.classList.add('show');
   renderCalendar();
 }
@@ -4506,8 +4530,8 @@ function renderCalendar() {
       dayElement.classList.add('selected');
       selectedDate = new Date(date);
       
-      // Abrir modal de evento
-      openEventModal(date);
+      // Não abrir modal automaticamente - usuário deve clicar duas vezes
+      // ou usar um botão separado para adicionar evento
     });
     
     calendarDays.appendChild(dayElement);
@@ -4518,6 +4542,14 @@ function goToToday() {
   currentCalendarDate = new Date();
   selectedDate = new Date();
   renderCalendar();
+}
+
+function addEventToSelectedDate() {
+  if (selectedDate) {
+    openEventModal(selectedDate);
+  } else {
+    alert('Por favor, selecione uma data primeiro.');
+  }
 }
 
 // Event listeners para navegação do calendário
@@ -4562,6 +4594,7 @@ function openEventModal(date) {
   // Configurar o botão de alternância
   setupToggleButton();
   
+  modal.style.display = ''; // Remover style inline
   modal.classList.add('show');
 }
 
