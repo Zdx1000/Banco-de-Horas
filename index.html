@@ -588,7 +588,6 @@
       background: linear-gradient(135deg, rgba(17, 24, 39, 0.85), rgba(75, 85, 99, 0.9));
       backdrop-filter: blur(12px) saturate(1.5);
       -webkit-backdrop-filter: blur(12px) saturate(1.5);
-      display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -4339,6 +4338,12 @@ function closeModal() {
   }
   
   modal.classList.remove('show');
+  // Forçar display none para garantir fechamento
+  setTimeout(() => {
+    if (!modal.classList.contains('show')) {
+      modal.style.display = 'none';
+    }
+  }, 100);
   
   // Remover as classes de animação para reset
   setTimeout(() => {
@@ -4358,15 +4363,35 @@ window.onclick = function(event) {
   
   if (event.target === compensacaoModal) {
     compensacaoModal.classList.remove('show');
+    setTimeout(() => {
+      if (!compensacaoModal.classList.contains('show')) {
+        compensacaoModal.style.display = 'none';
+      }
+    }, 100);
   }
   if (event.target === eventModal) {
     eventModal.classList.remove('show');
+    setTimeout(() => {
+      if (!eventModal.classList.contains('show')) {
+        eventModal.style.display = 'none';
+      }
+    }, 100);
   }
   if (event.target === calendarModal) {
     calendarModal.classList.remove('show');
+    setTimeout(() => {
+      if (!calendarModal.classList.contains('show')) {
+        calendarModal.style.display = 'none';
+      }
+    }, 100);
   }
   if (event.target === calendarOptionsModal) {
     calendarOptionsModal.classList.remove('show');
+    setTimeout(() => {
+      if (!calendarOptionsModal.classList.contains('show')) {
+        calendarOptionsModal.style.display = 'none';
+      }
+    }, 100);
   }
 }
 
@@ -4379,6 +4404,11 @@ document.addEventListener('keydown', function(event) {
       const modal = document.getElementById(modalId);
       if (modal && modal.classList.contains('show')) {
         modal.classList.remove('show');
+        setTimeout(() => {
+          if (!modal.classList.contains('show')) {
+            modal.style.display = 'none';
+          }
+        }, 100);
       }
     });
   }
@@ -4431,6 +4461,12 @@ function openCalendarModal() {
 function closeCalendarModal() {
   const modal = document.getElementById('calendarOptionsModal');
   modal.classList.remove('show');
+  // Forçar display none para garantir fechamento
+  setTimeout(() => {
+    if (!modal.classList.contains('show')) {
+      modal.style.display = 'none';
+    }
+  }, 100);
 }
 
 function selectOption(option) {
@@ -4462,6 +4498,12 @@ function openCalendarViewModal() {
 function closeCalendarViewModal() {
   const modal = document.getElementById('calendarModal');
   modal.classList.remove('show');
+  // Forçar display none para garantir fechamento
+  setTimeout(() => {
+    if (!modal.classList.contains('show')) {
+      modal.style.display = 'none';
+    }
+  }, 100);
 }
 
 function renderCalendar() {
@@ -4601,6 +4643,12 @@ function openEventModal(date) {
 function closeEventModal() {
   const modal = document.getElementById('eventModal');
   modal.classList.remove('show');
+  // Forçar display none para garantir fechamento
+  setTimeout(() => {
+    if (!modal.classList.contains('show')) {
+      modal.style.display = 'none';
+    }
+  }, 100);
   
   // Limpar o formulário
   document.getElementById('employeeInput').value = '';
