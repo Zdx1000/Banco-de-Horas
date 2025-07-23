@@ -2056,6 +2056,15 @@
                                 <option value="">Todos os Meses</option>
                             </select>
                         </div>
+                        <div class="filter-group">
+                            <label for="ano-filter" class="filter-label">
+                                <i class="fas fa-calendar-alt"></i>
+                                Ano
+                            </label>
+                            <select id="ano-filter" class="filter-select">
+                                <option value="">Todos os Anos</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="active-filters" id="active-filters" style="display: none;">
                         <span class="filters-label">Filtros ativos:</span>
@@ -2352,13 +2361,16 @@
         function populateFilters() {
             const funcionarios = [...new Set(rawData.map(item => item.Funcionario))].sort();
             const meses = [...new Set(rawData.map(item => item.Mes))].sort();
+            const anos = [...new Set(rawData.map(item => item.Ano))].sort();
 
             const funcionarioSelect = document.getElementById('funcionario-filter');
             const mesSelect = document.getElementById('mes-filter');
+            const anoSelect = document.getElementById('ano-filter');
 
             // Limpar opções existentes
             funcionarioSelect.innerHTML = '<option value="">Todos os funcionários</option>';
             mesSelect.innerHTML = '<option value="">Todos os meses</option>';
+            anoSelect.innerHTML = '<option value="">Todos os anos</option>';
 
             // Atualizar labels dos filtros
             document.querySelector('label[for="funcionario-filter"]').innerHTML = `
@@ -2368,6 +2380,10 @@
             document.querySelector('label[for="mes-filter"]').innerHTML = `
                 <i class="fas fa-calendar"></i>
                 Mês
+            `;
+            document.querySelector('label[for="ano-filter"]').innerHTML = `
+                <i class="fas fa-calendar-alt"></i>
+                Ano
             `;
 
             funcionarios.forEach(func => {
@@ -2384,20 +2400,30 @@
                 mesSelect.appendChild(option);
             });
 
+            anos.forEach(ano => {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                anoSelect.appendChild(option);
+            });
+
             // Event listeners para filtros
             funcionarioSelect.addEventListener('change', applyFilters);
             mesSelect.addEventListener('change', applyFilters);
+            anoSelect.addEventListener('change', applyFilters);
         }
 
         // Função para aplicar filtros
         function applyFilters() {
             const funcionarioFilter = document.getElementById('funcionario-filter').value;
             const mesFilter = document.getElementById('mes-filter').value;
+            const anoFilter = document.getElementById('ano-filter').value;
 
             filteredData = rawData.filter(item => {
                 const funcionarioMatch = !funcionarioFilter || item.Funcionario === funcionarioFilter;
                 const mesMatch = !mesFilter || item.Mes === mesFilter;
-                return funcionarioMatch && mesMatch;
+                const anoMatch = !anoFilter || item.Ano === anoFilter;
+                return funcionarioMatch && mesMatch && anoMatch;
             });
 
             updateQuickStats();
@@ -2412,10 +2438,11 @@
         function updateActiveFilters() {
             const funcionarioFilter = document.getElementById('funcionario-filter').value;
             const mesFilter = document.getElementById('mes-filter').value;
+            const anoFilter = document.getElementById('ano-filter').value;
             const activeFiltersContainer = document.getElementById('active-filters');
             const filterTagsContainer = document.getElementById('filter-tags');
 
-            const hasActiveFilters = funcionarioFilter || mesFilter;
+            const hasActiveFilters = funcionarioFilter || mesFilter || anoFilter;
             
             if (hasActiveFilters) {
                 activeFiltersContainer.style.display = 'block';
@@ -2432,6 +2459,14 @@
                 if (mesFilter) {
                     const tag = createFilterTag('Mês', mesFilter, () => {
                         document.getElementById('mes-filter').value = '';
+                        applyFilters();
+                    });
+                    filterTagsContainer.appendChild(tag);
+                }
+
+                if (anoFilter) {
+                    const tag = createFilterTag('Ano', anoFilter, () => {
+                        document.getElementById('ano-filter').value = '';
                         applyFilters();
                     });
                     filterTagsContainer.appendChild(tag);
@@ -2460,6 +2495,7 @@
         function clearFilters() {
             document.getElementById('funcionario-filter').value = '';
             document.getElementById('mes-filter').value = '';
+            document.getElementById('ano-filter').value = '';
             applyFilters();
             showToast('Filtros limpos', 'info');
         }
@@ -3209,7 +3245,12 @@
             // Tooltip para filtros
             document.querySelectorAll('.filter-select').forEach(select => {
                 select.addEventListener('focus', function(e) {
-                    const filterType = e.target.id.includes('funcionario') ? 'funcionario' : 'mes';
+                    let filterType = 'mes';
+                    if (e.target.id.includes('funcionario')) {
+                        filterType = 'funcionario';
+                    } else if (e.target.id.includes('ano')) {
+                        filterType = 'ano';
+                    }
                     showCustomTooltip(e.target, getFilterTooltip(filterType), 'top');
                 });
                 
@@ -3273,6 +3314,13 @@
                     title: '👤 Filtro por Funcionário',
                     description: 'Filtra os dados por funcionário específico',
                     tip: 'Selecione um funcionário para análise individual'
+                };
+            }
+            if (type === 'ano') {
+                return {
+                    title: '📅 Filtro por Ano',
+                    description: 'Filtra os dados por ano específico',
+                    tip: 'Útil para análises anuais comparativas'
                 };
             }
             return {
