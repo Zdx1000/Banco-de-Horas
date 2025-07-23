@@ -3,306 +3,1426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Reimpressão - Mobile</title>
+    <title>Dashboard Reimpressão - Mobile Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-red: #e63946;
+            --primary-red-dark: #d62d39;
+            --primary-red-light: #ff6b77;
             --dark-black: #212529;
+            --dark-black-light: #343a40;
             --neutral-gray: #adb5bd;
+            --neutral-gray-dark: #868e96;
+            --neutral-gray-light: #ced4da;
             --light-gray: #f8f9fa;
+            --light-gray-dark: #e9ecef;
             --white: #ffffff;
+            --success: #20c997;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --danger: #dc3545;
+            
+            /* Shadows & Effects */
+            --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             --shadow: 0 0.25rem 0.875rem rgba(33, 37, 41, 0.15);
             --shadow-lg: 0 0.5rem 1.5rem rgba(33, 37, 41, 0.2);
+            --shadow-xl: 0 1rem 3rem rgba(33, 37, 41, 0.3);
+            --glow-red: 0 0 20px rgba(230, 57, 70, 0.3);
+            --glow-white: 0 0 20px rgba(255, 255, 255, 0.2);
+            
+            /* Border Radius */
+            --border-radius-sm: 0.375rem;
             --border-radius: 0.75rem;
             --border-radius-lg: 1rem;
+            --border-radius-xl: 1.5rem;
+            --border-radius-full: 50%;
+            
+            /* Transitions */
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+            --transition-bounce: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            
+            /* Typography */
+            --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-weight-light: 300;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+            --font-weight-extrabold: 800;
+            
+            /* Layout */
+            --container-padding: 1rem;
+            --container-max-width: 75rem;
+            --header-height: 4rem;
+            --fab-size: 3.5rem;
         }
 
+        /* Reset & Base Styles */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--dark-black) 0%, var(--neutral-gray) 100%);
-            min-height: 100vh;
-            color: var(--dark-black);
-            line-height: 1.6;
+        *::before,
+        *::after {
+            box-sizing: border-box;
         }
 
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            font-weight: var(--font-weight-normal);
+            line-height: 1.6;
+            color: var(--dark-black);
+            background: linear-gradient(135deg, var(--dark-black) 0%, var(--neutral-gray) 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--dark-black) 0%, var(--primary-red) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            visibility: visible;
+            transition: all var(--transition-slow);
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-container {
+            text-align: center;
+            color: var(--white);
+        }
+
+        .loading-spinner {
+            position: relative;
+            width: 5rem;
+            height: 5rem;
+            margin: 0 auto 2rem;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-top: 3px solid var(--white);
+            border-radius: var(--border-radius-full);
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner-ring:nth-child(2) {
+            animation-delay: 0.1s;
+            border-top-color: var(--primary-red-light);
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+        }
+
+        .spinner-ring:nth-child(3) {
+            animation-delay: 0.2s;
+            border-top-color: var(--neutral-gray-light);
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: 1rem;
+        }
+
+        .loading-text i {
+            margin-right: 0.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--white), var(--primary-red-light));
+            border-radius: var(--border-radius);
+            animation: loading-progress 2s ease-in-out infinite;
+        }
+
+        @keyframes loading-progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Header */
         .header {
             background: var(--white);
             padding: 1rem;
-            text-align: center;
             box-shadow: var(--shadow);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: var(--container-max-width);
+            margin: 0 auto;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-icon {
+            font-size: 1.5rem;
+            color: var(--primary-red);
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-5px); }
+            60% { transform: translateY(-3px); }
         }
 
         .header h1 {
             font-size: 1.5rem;
+            font-weight: var(--font-weight-bold);
             color: var(--primary-red);
-            margin-bottom: 0.5rem;
-            font-weight: 700;
+            margin: 0;
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.9rem;
+            color: var(--neutral-gray);
+            margin: 0.5rem 0 0 0;
+            font-weight: var(--font-weight-medium);
+        }
+
+        .dashboard-subtitle i {
+            color: var(--primary-red);
+            margin-right: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .stats-btn {
-            background: var(--primary-red);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
             color: var(--white);
             border: none;
             padding: 0.75rem 1.5rem;
-            border-radius: 2rem;
+            border-radius: var(--border-radius-xl);
             font-size: 0.9rem;
-            font-weight: 600;
+            font-weight: var(--font-weight-semibold);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition-normal);
             box-shadow: var(--shadow);
             min-height: 2.75rem;
             touch-action: manipulation;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left var(--transition-slow);
+        }
+
+        .stats-btn:hover::before {
+            left: 100%;
         }
 
         .stats-btn:hover {
-            transform: translateY(-0.125rem);
-            box-shadow: var(--shadow-lg);
-            background: #d62d39;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg), var(--glow-red);
+            background: linear-gradient(135deg, var(--primary-red-light), var(--primary-red));
         }
 
         .stats-btn:active {
             transform: translateY(0);
         }
 
+        .stats-btn i {
+            margin-right: 0.5rem;
+        }
+
+        .refresh-btn {
+            background: var(--light-gray);
+            color: var(--dark-black);
+            border: none;
+            padding: 0.75rem;
+            border-radius: var(--border-radius-full);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            box-shadow: var(--shadow-sm);
+            width: 2.75rem;
+            height: 2.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .refresh-btn:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: rotate(180deg) scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+        .header-subtitle {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--neutral-gray);
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.3s forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Container */
         .container {
-            padding: 1rem;
-            max-width: 100%;
+            padding: var(--container-padding);
+            max-width: var(--container-max-width);
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Quick Stats Cards */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            animation: slideInUp 0.6s ease-out both;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-red), var(--primary-red-light));
+            transform: scaleX(0);
+            transition: transform var(--transition-normal);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card-primary::before {
+            background: linear-gradient(90deg, var(--primary-red), var(--primary-red-light));
+        }
+
+        .stat-card-secondary::before {
+            background: linear-gradient(90deg, var(--info), #20c9e5);
+        }
+
+        .stat-card-tertiary::before {
+            background: linear-gradient(90deg, var(--success), #2dd4aa);
+        }
+
+        .stat-card-quaternary::before {
+            background: linear-gradient(90deg, var(--warning), #ffd633);
+        }
+
+        .stat-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-light));
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-card-secondary .stat-icon {
+            background: linear-gradient(135deg, var(--info), #20c9e5);
+        }
+
+        .stat-card-tertiary .stat-icon {
+            background: linear-gradient(135deg, var(--success), #2dd4aa);
+        }
+
+        .stat-card-quaternary .stat-icon {
+            background: linear-gradient(135deg, var(--warning), #ffd633);
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: var(--font-weight-medium);
+            color: var(--neutral-gray);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.75rem;
+            font-weight: var(--font-weight-bold);
+            color: var(--dark-black);
+            line-height: 1;
+        }
+
+        .stat-trend {
+            color: var(--success);
+            font-size: 1.25rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        /* Trend indicators - reimpressões são negativas, então verde significa redução */
+        .trend-negative {
+            color: #28a745 !important; /* Verde para seta para baixo (bom) */
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        .trend-warning {
+            color: #ffc107 !important; /* Amarelo para alerta */
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        .trend-info {
+            color: #17a2b8 !important; /* Azul para informação */
+            background: rgba(23, 162, 184, 0.1);
+            border-radius: 50%;
+            padding: 4px;
+        }
+
+        /* Filters Section */
+        .filters-section {
+            margin-bottom: 2rem;
+            animation: slideInRight 0.6s ease-out 0.5s both;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .filters-container {
             background: var(--white);
             border-radius: var(--border-radius-lg);
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 1.5rem;
             box-shadow: var(--shadow);
+            border: 1px solid var(--light-gray-dark);
+        }
+
+        .filters-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .filters-header h3 {
+            font-size: 1.125rem;
+            font-weight: var(--font-weight-semibold);
+            color: var(--dark-black);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filters-header i {
+            color: var(--primary-red);
+        }
+
+        .clear-filters-btn {
+            background: var(--light-gray);
+            color: var(--neutral-gray);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            font-size: 0.8rem;
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .clear-filters-btn:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: scale(1.05);
         }
 
         .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
             display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: var(--font-weight-medium);
+            color: var(--dark-black);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label i {
+            color: var(--primary-red);
+            font-size: 0.8rem;
         }
 
         .filter-select {
-            flex: 1;
-            min-width: 8rem;
-            padding: 0.875rem;
-            border: 2px solid var(--light-gray);
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--light-gray-dark);
             border-radius: var(--border-radius);
             font-size: 0.9rem;
+            font-family: inherit;
             background: var(--white);
             color: var(--dark-black);
-            transition: all 0.3s ease;
+            transition: all var(--transition-normal);
             min-height: 2.75rem;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
             background-repeat: no-repeat;
-            background-size: 1.5rem 1.5rem;
+            background-size: 1.25rem 1.25rem;
             padding-right: 2.5rem;
+            cursor: pointer;
         }
 
         .filter-select:focus {
             outline: none;
             border-color: var(--primary-red);
             box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23e63946' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        }
+
+        .active-filters {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--light-gray-dark);
+        }
+
+        .filters-label {
+            font-size: 0.8rem;
+            font-weight: var(--font-weight-medium);
+            color: var(--neutral-gray);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-tag {
+            background: var(--primary-red);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--border-radius-xl);
+            font-size: 0.75rem;
+            font-weight: var(--font-weight-medium);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideInLeft 0.3s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0;
+            margin: 0;
+            transition: transform var(--transition-fast);
+        }
+
+        .filter-tag button:hover {
+            transform: scale(1.2);
+        }
+
+        /* Charts Section */
+        .charts-section {
+            margin-bottom: 2rem;
         }
 
         .chart-container {
             background: var(--white);
             border-radius: var(--border-radius-lg);
-            padding: 1rem;
-            margin-bottom: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
             box-shadow: var(--shadow);
+            transition: all var(--transition-normal);
+            animation: slideInLeft 0.6s ease-out both;
+        }
+
+        .chart-container:nth-child(1) { animation-delay: 0.6s; }
+        .chart-container:nth-child(2) { animation-delay: 0.7s; }
+
+        .chart-container:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .chart-title {
             font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+            font-weight: var(--font-weight-semibold);
             color: var(--dark-black);
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
         }
 
-        .chart-wrapper {
-            position: relative;
-            height: 15.625rem;
-        }
-
-        .insights-container {
-            background: var(--white);
-            border-radius: var(--border-radius-lg);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow);
-        }
-
-        .insights-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--dark-black);
-            text-align: center;
-        }
-
-        .insight-item {
-            background: var(--light-gray);
-            padding: 0.875rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 0.5rem;
-            border-left: 4px solid var(--primary-red);
-            font-size: 0.9rem;
-        }
-
-        .insight-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .loading {
-            text-align: center;
-            color: var(--white);
-            font-size: 1.125rem;
-            margin: 2rem 0;
-            font-weight: 500;
-        }
-
-        .error {
-            background: rgba(230, 57, 70, 0.1);
+        .chart-title i {
             color: var(--primary-red);
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            margin: 1rem;
-            text-align: center;
-            border: 1px solid rgba(230, 57, 70, 0.2);
+            font-size: 1rem;
         }
 
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(33, 37, 41, 0.75);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .modal.show {
-            display: block;
-            opacity: 1;
-        }
-
-        .modal-content {
-            background: var(--white);
-            margin: 10% auto;
-            padding: 1.5rem;
-            border-radius: var(--border-radius-lg);
-            width: 90%;
-            max-width: 25rem;
-            position: relative;
-            transform: translateY(-1.25rem);
-            transition: transform 0.3s ease;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .modal.show .modal-content {
-            transform: translateY(0);
-        }
-
-        .close {
-            position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 1.5rem;
-            cursor: pointer;
+        .chart-action-btn {
+            background: var(--light-gray);
             color: var(--neutral-gray);
+            border: none;
+            padding: 0.5rem;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
             width: 2rem;
             height: 2rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            transition: all 0.2s ease;
         }
 
-        .close:hover {
-            background: var(--light-gray);
+        .chart-action-btn:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: scale(1.1);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 15.625rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .chart-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(248, 249, 250, 0.95);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .no-data-message {
+            text-align: center;
+            color: var(--neutral-gray);
+        }
+
+        .no-data-message i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            opacity: 0.5;
+        }
+
+        .chart-legend {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--light-gray-dark);
+        }
+
+        /* Error Container */
+        .error-container {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--danger);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error-content {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            color: var(--danger);
+            margin-bottom: 1rem;
+            display: block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .error-content h3 {
+            font-size: 1.25rem;
+            font-weight: var(--font-weight-semibold);
             color: var(--dark-black);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-content p {
+            color: var(--neutral-gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .retry-btn {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+            color: var(--white);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Insights Section */
+        .insights-section {
+            margin-bottom: 2rem;
+            animation: slideInUp 0.6s ease-out 0.8s both;
+        }
+
+        .insights-container {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .insights-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .insights-title {
+            font-size: 1.125rem;
+            font-weight: var(--font-weight-semibold);
+            color: var(--dark-black);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .insights-title i {
+            color: var(--warning);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .insights-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .insights-action-btn {
+            background: var(--light-gray);
+            color: var(--neutral-gray);
+            border: none;
+            padding: 0.5rem;
+            border-radius: var(--border-radius-full);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .insights-action-btn:hover {
+            background: var(--warning);
+            color: var(--white);
+            transform: rotate(180deg) scale(1.1);
+        }
+
+        .insights-content {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .insight-item {
+            background: linear-gradient(135deg, var(--light-gray), var(--light-gray-dark));
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--primary-red);
+            font-size: 0.9rem;
+            color: var(--dark-black);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            animation: slideInUp 0.4s ease-out both;
+        }
+
+        .insight-item:nth-child(1) { animation-delay: 0.1s; }
+        .insight-item:nth-child(2) { animation-delay: 0.2s; }
+        .insight-item:nth-child(3) { animation-delay: 0.3s; }
+        .insight-item:nth-child(4) { animation-delay: 0.4s; }
+        .insight-item:nth-child(5) { animation-delay: 0.5s; }
+
+        .insight-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(230, 57, 70, 0.1), transparent);
+            transition: left var(--transition-slow);
+        }
+
+        .insight-item:hover::before {
+            left: 100%;
+        }
+
+        .insight-item:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Performers Section */
+        .performers-section {
+            margin-bottom: 2rem;
+            animation: slideInUp 0.6s ease-out 0.9s both;
+        }
+
+        .performers-container {
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .performers-title {
+            font-size: 1.125rem;
+            font-weight: var(--font-weight-semibold);
+            color: var(--dark-black);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .performers-title i {
+            color: var(--warning);
+        }
+
+        .performers-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .performer-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--light-gray);
+            border-radius: var(--border-radius);
+            transition: all var(--transition-normal);
+            animation: slideInRight 0.4s ease-out both;
+        }
+
+        .performer-item:nth-child(1) { animation-delay: 0.1s; }
+        .performer-item:nth-child(2) { animation-delay: 0.2s; }
+        .performer-item:nth-child(3) { animation-delay: 0.3s; }
+
+        .performer-item:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: scale(1.02);
+        }
+
+        .performer-rank {
+            width: 2rem;
+            height: 2rem;
+            border-radius: var(--border-radius-full);
+            background: var(--primary-red);
+            color: var(--white);
+            font-weight: var(--font-weight-bold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .performer-item:hover .performer-rank {
+            background: var(--white);
+            color: var(--primary-red);
+        }
+
+        .performer-info {
+            flex: 1;
+        }
+
+        .performer-name {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: 0.25rem;
+        }
+
+        .performer-count {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .performer-badge {
+            background: var(--warning);
+            color: var(--white);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius);
+            font-size: 0.7rem;
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* Enhanced Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }
+
+        .modal.show {
+            display: block;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(33, 37, 41, 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: var(--white);
+            margin: 5% auto;
+            border-radius: var(--border-radius-xl);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            transform: scale(0.9) translateY(-20px);
+            transition: all var(--transition-bounce);
+            animation: modalSlideIn 0.5s ease-out forwards;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: scale(0.9) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--light-gray-dark);
+            background: linear-gradient(135deg, var(--light-gray), var(--white));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .modal-title {
             font-size: 1.25rem;
-            font-weight: 700;
+            font-weight: var(--font-weight-bold);
             color: var(--primary-red);
-            margin-bottom: 1rem;
-            text-align: center;
-            padding-right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: var(--light-gray);
+            color: var(--neutral-gray);
+            border: none;
+            padding: 0.5rem;
+            border-radius: var(--border-radius-full);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-stats {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--light-gray);
+            padding: 0.75rem;
+            background: var(--light-gray);
+            border-radius: var(--border-radius);
+            transition: all var(--transition-fast);
         }
 
-        .stat-row:last-child {
-            border-bottom: none;
+        .stat-row:hover {
+            background: var(--primary-red);
+            color: var(--white);
+            transform: scale(1.02);
         }
 
         .stat-label {
-            font-weight: 500;
-            color: var(--neutral-gray);
+            font-weight: var(--font-weight-medium);
             font-size: 0.9rem;
         }
 
         .stat-value {
-            font-weight: 700;
+            font-weight: var(--font-weight-bold);
+            font-size: 1.1rem;
+        }
+
+        .modal-charts {
+            border-top: 1px solid var(--light-gray-dark);
+            padding-top: 1.5rem;
+        }
+
+        .mini-chart-container {
+            text-align: center;
+        }
+
+        .mini-chart-container h4 {
+            font-size: 1rem;
+            font-weight: var(--font-weight-semibold);
             color: var(--dark-black);
-            font-size: 1.125rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--light-gray-dark);
+            background: var(--light-gray);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+            color: var(--white);
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-btn-secondary {
+            background: var(--neutral-gray);
+            color: var(--white);
+        }
+
+        .modal-btn-secondary:hover {
+            background: var(--dark-black);
+            transform: translateY(-2px);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 300px;
+        }
+
+        .toast {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--primary-red);
+            transform: translateX(320px);
+            transition: all var(--transition-normal);
+            animation: toastSlideIn 0.4s ease-out forwards;
+        }
+
+        @keyframes toastSlideIn {
+            from { transform: translateX(320px); }
+            to { transform: translateX(0); }
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning);
+        }
+
+        .toast-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .toast-title {
+            font-weight: var(--font-weight-semibold);
+            font-size: 0.9rem;
+            color: var(--dark-black);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--neutral-gray);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+        }
+
+        .toast-body {
+            font-size: 0.85rem;
+            color: var(--neutral-gray);
+        }
+
+        /* Floating Action Button */
+        .fab-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1500;
+        }
+
+        .fab {
+            width: var(--fab-size);
+            height: var(--fab-size);
+            border-radius: var(--border-radius-full);
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+            color: var(--white);
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fabPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes fabPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); box-shadow: var(--shadow-xl), var(--glow-red); }
+        }
+
+        .fab:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-xl), var(--glow-red);
+            animation: none;
+        }
+
+        .fab:active {
+            transform: scale(1.05);
         }
 
         /* Responsive Design */
         @media (min-width: 48rem) {
-            .container {
-                padding: 2rem;
-                max-width: 75rem;
-                margin: 0 auto;
+            :root {
+                --container-padding: 2rem;
+                --header-height: 5rem;
+            }
+
+            .header {
+                padding: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.875rem;
+            }
+
+            .quick-stats {
+                grid-template-columns: repeat(4, 1fr);
             }
 
             .chart-wrapper {
                 height: 18.75rem;
             }
 
-            .filters-container {
-                padding: 1.5rem;
-            }
-
             .filter-row {
-                justify-content: center;
-                gap: 1rem;
+                grid-template-columns: repeat(2, 1fr);
+                max-width: 600px;
+                margin: 0 auto;
             }
 
-            .filter-select {
-                max-width: 12.5rem;
+            .modal-content {
+                margin: 8% auto;
+                max-width: 600px;
             }
 
-            .header h1 {
-                font-size: 1.875rem;
+            .toast-container {
+                max-width: 400px;
             }
         }
 
@@ -311,107 +1431,777 @@
                 height: 21.875rem;
             }
 
-            .modal-content {
-                max-width: 31.25rem;
+            .insights-content {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        /* Custom scrollbar */
+        @media (min-width: 80rem) {
+            .quick-stats {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .charts-section {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+
+            .chart-container {
+                margin-bottom: 0;
+            }
+        }
+
+        /* Custom UI Tooltips */
+        .custom-tooltip {
+            position: fixed;
+            z-index: 10000;
+            background: linear-gradient(135deg, rgba(33, 37, 41, 0.98), rgba(52, 58, 64, 0.98));
+            border: 2px solid var(--primary-red);
+            border-radius: 12px;
+            padding: 0;
+            max-width: 280px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 30px rgba(230, 57, 70, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            font-family: var(--font-family-base);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, 
+                var(--primary-red), 
+                var(--primary-red-light), 
+                var(--primary-red), 
+                var(--primary-red-light)
+            );
+            background-size: 200% 200%;
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0.4;
+            animation: tooltip-border-flow 3s ease-in-out infinite;
+        }
+
+        @keyframes tooltip-border-flow {
+            0%, 100% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+        }
+
+        .tooltip-header {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-dark));
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tooltip-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: var(--font-weight-bold);
+            color: var(--white);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip-body {
+            padding: 16px;
+            color: var(--white);
+        }
+
+        .tooltip-body p {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            font-weight: var(--font-weight-medium);
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .tooltip-tip {
+            display: block;
+            font-size: 11px;
+            font-weight: var(--font-weight-normal);
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+            background: rgba(230, 57, 70, 0.1);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-red);
+        }
+
+        .tooltip-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .tooltip-arrow::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        /* Arrow positioning - will be handled by JavaScript */
+        .custom-tooltip[data-position="top"] .tooltip-arrow {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0 8px;
+            border-color: var(--primary-red) transparent transparent transparent;
+        }
+
+        .custom-tooltip[data-position="bottom"] .tooltip-arrow {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 8px 8px 8px;
+            border-color: transparent transparent var(--primary-red) transparent;
+        }
+
+        /* Tooltip hover effects for interactive elements */
+        .stat-card {
+            position: relative;
+            overflow: visible;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(230, 57, 70, 0.05), 
+                rgba(230, 57, 70, 0.02)
+            );
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+            pointer-events: none;
+            border-radius: inherit;
+        }
+
+        .stat-card:hover::after {
+            opacity: 1;
+        }
+
+        .chart-action-btn {
+            position: relative;
+            overflow: visible;
+        }
+
+        .chart-action-btn::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary-red), transparent, var(--primary-red));
+            border-radius: inherit;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity var(--transition-fast);
+        }
+
+        .chart-action-btn:hover::before {
+            opacity: 0.3;
+        }
+
+        /* Enhanced loading states with tooltips */
+        .chart-overlay .no-data-message {
+            position: relative;
+        }
+
+        .chart-overlay .no-data-message::after {
+            content: 'Os dados estão sendo processados...';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--neutral-gray);
+            white-space: nowrap;
+            opacity: 0.7;
+        }
+
+        /* Custom Chart Tooltips */
+        .chartjs-tooltip {
+            background: linear-gradient(135deg, rgba(33, 37, 41, 0.98), rgba(52, 58, 64, 0.98)) !important;
+            border: 2px solid var(--primary-red) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(230, 57, 70, 0.2) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            font-family: 'Inter', sans-serif !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .chartjs-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary-red), var(--primary-red-light));
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0.3;
+            animation: tooltip-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes tooltip-glow {
+            from { opacity: 0.3; }
+            to { opacity: 0.6; }
+        }
+
+        /* Chart Hover Effects */
+        .chart-wrapper canvas {
+            transition: transform var(--transition-fast);
+        }
+
+        .chart-wrapper:hover canvas {
+            transform: scale(1.02);
+        }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 0.5rem;
         }
 
         ::-webkit-scrollbar-track {
             background: var(--light-gray);
+            border-radius: var(--border-radius);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--neutral-gray);
-            border-radius: 0.25rem;
+            background: linear-gradient(180deg, var(--neutral-gray), var(--neutral-gray-dark));
+            border-radius: var(--border-radius);
+            transition: background var(--transition-normal);
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-red);
+            background: linear-gradient(180deg, var(--primary-red), var(--primary-red-dark));
+        }
+
+        /* Print Styles */
+        @media print {
+            .header-actions,
+            .fab-container,
+            .toast-container {
+                display: none !important;
+            }
+
+            .container {
+                max-width: none;
+                padding: 0;
+            }
+
+            .chart-container,
+            .insights-container,
+            .performers-container {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --white: #1a1a1a;
+                --light-gray: #2d2d2d;
+                --light-gray-dark: #404040;
+                --dark-black: #ffffff;
+                --neutral-gray: #b0b0b0;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            :root {
+                --shadow: 0 0.25rem 0.875rem rgba(0, 0, 0, 0.5);
+                --shadow-lg: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.6);
+            }
+
+            .stat-card,
+            .chart-container,
+            .filters-container,
+            .insights-container,
+            .performers-container {
+                border: 2px solid var(--dark-black);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>📊 Dashboard Reimpressão</h1>
-        <button class="stats-btn" onclick="openModal()">Ver Estatísticas</button>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-container">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <h2 class="loading-text">
+                <i class="fas fa-chart-line"></i>
+                Carregando Dashboard
+            </h2>
+            <div class="loading-progress">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="container">
-        <div id="loading" class="loading">Carregando dados...</div>
-        <div id="error" class="error" style="display: none;"></div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-title">
+                <i class="fas fa-print header-icon"></i>
+                <h1>🎯 Dashboard de Redução de Reimpressões</h1>
+                <p class="dashboard-subtitle">
+                    <i class="fas fa-info-circle"></i>
+                    Monitorando problemas para alcançar ZERO reimpressões
+                </p>
+            </div>
+            <div class="header-actions">
+                <button class="stats-btn" onclick="openModal()" aria-label="Abrir estatísticas">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Estatísticas</span>
+                </button>
+                <button class="refresh-btn" onclick="refreshData()" aria-label="Atualizar dados">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="header-subtitle">
+            <span id="last-update">Última atualização: <span id="update-time">--</span></span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+        <!-- Error State -->
+        <div id="error" class="error-container" style="display: none;">
+            <div class="error-content">
+                <i class="fas fa-exclamation-triangle error-icon"></i>
+                <h3>Ops! Algo deu errado</h3>
+                <p id="error-message">Erro ao carregar dados</p>
+                <button class="retry-btn" onclick="loadData()">
+                    <i class="fas fa-redo"></i>
+                    Tentar Novamente
+                </button>
+            </div>
+        </div>
         
+        <!-- Main Content -->
         <div id="main-content" style="display: none;">
-            <div class="filters-container">
-                <div class="filter-row">
-                    <select id="funcionario-filter" class="filter-select">
-                        <option value="">Todos os Funcionários</option>
-                    </select>
-                    <select id="mes-filter" class="filter-select">
-                        <option value="">Todos os Meses</option>
-                    </select>
+            <!-- Quick Stats Cards -->
+            <section class="quick-stats">
+                <div class="stat-card stat-card-primary" data-metric="total">
+                    <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total de Registros</span>
+                            <span class="stat-value" id="total-records">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-trend trend-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
                 </div>
-            </div>
 
-            <div class="chart-container">
-                <h3 class="chart-title">Reimpressões por Número da Semana</h3>
-                <div class="chart-wrapper">
-                    <canvas id="weekNumberChart"></canvas>
+                <div class="stat-card stat-card-secondary" data-metric="employees">
+                    <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-print"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Reimpressões</span>
+                            <span class="stat-value" id="total-reprints">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-trend trend-negative">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
                 </div>
-            </div>
 
-            <div class="chart-container">
-                <h3 class="chart-title">Reimpressões por Dia da Semana</h3>
-                <div class="chart-wrapper">
-                    <canvas id="weekDayChart"></canvas>
+                <div class="stat-card stat-card-tertiary" data-metric="week">
+                    <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Funcionários</span>
+                            <span class="stat-value" id="total-employees">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-trend trend-negative">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
                 </div>
-            </div>
 
-            <div class="insights-container">
-                <h3 class="insights-title">💡 Insights dos Dados</h3>
-                <div id="insights-content"></div>
-            </div>
+                <div class="stat-card stat-card-quaternary" data-metric="peak">
+                    <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Período</span>
+                            <span class="stat-value" id="period-range">--</span>
+                        </div>
+                    </div>
+                    <div class="stat-trend trend-info">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters Section -->
+            <section class="filters-section">
+                <div class="filters-container">
+                    <div class="filters-header">
+                        <h3>
+                            <i class="fas fa-filter"></i>
+                            Filtros Avançados
+                        </h3>
+                        <button class="clear-filters-btn" onclick="clearFilters()" aria-label="Limpar filtros">
+                            <i class="fas fa-times"></i>
+                            Limpar
+                        </button>
+                    </div>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="funcionario-filter" class="filter-label">
+                                <i class="fas fa-user"></i>
+                                Funcionário
+                            </label>
+                            <select id="funcionario-filter" class="filter-select">
+                                <option value="">Todos os Funcionários</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="mes-filter" class="filter-label">
+                                <i class="fas fa-calendar"></i>
+                                Mês
+                            </label>
+                            <select id="mes-filter" class="filter-select">
+                                <option value="">Todos os Meses</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="active-filters" id="active-filters" style="display: none;">
+                        <span class="filters-label">Filtros ativos:</span>
+                        <div class="filter-tags" id="filter-tags"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="chart-container chart-primary">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Problemas por Semana (Reimpressões)
+                        </h3>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" data-action="filter" onclick="toggleChartType('weekNumberChart')" aria-label="Alternar tipo de gráfico">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <button class="chart-action-btn" data-action="download" onclick="exportChart('weekNumberChart')" aria-label="Exportar gráfico">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="weekNumberChart"></canvas>
+                        <div class="chart-overlay" id="week-chart-overlay" style="display: none;">
+                            <div class="no-data-message">
+                                <i class="fas fa-chart-bar"></i>
+                                <p>Nenhum dado disponível</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-legend" id="week-chart-legend"></div>
+                </div>
+
+                <div class="chart-container chart-secondary">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Problemas por Dia da Semana
+                        </h3>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" data-action="refresh" onclick="toggleChartType('weekDayChart')" aria-label="Alternar tipo de gráfico">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <button class="chart-action-btn" data-action="fullscreen" onclick="exportChart('weekDayChart')" aria-label="Exportar gráfico">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="weekDayChart"></canvas>
+                        <div class="chart-overlay" id="day-chart-overlay" style="display: none;">
+                            <div class="no-data-message">
+                                <i class="fas fa-chart-line"></i>
+                                <p>Nenhum dado disponível</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-legend" id="day-chart-legend"></div>
+                </div>
+            </section>
+
+            <!-- Insights Section -->
+            <section class="insights-section">
+                <div class="insights-container">
+                    <div class="insights-header">
+                        <h3 class="insights-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Insights Inteligentes
+                        </h3>
+                        <div class="insights-actions">
+                            <button class="insights-action-btn" onclick="refreshInsights()" aria-label="Atualizar insights">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="insights-content" class="insights-content"></div>
+                </div>
+            </section>
+
+            <!-- Top Performers Section -->
+            <section class="performers-section">
+                <div class="performers-container">
+                    <h3 class="performers-title">
+                        <i class="fas fa-trophy"></i>
+                        Top Reimpressões
+                    </h3>
+                    <div id="top-performers" class="performers-list"></div>
+                </div>
+            </section>
         </div>
-    </div>
+    </main>
 
-    <!-- Modal -->
+    <!-- Enhanced Modal -->
     <div id="statsModal" class="modal">
+        <div class="modal-backdrop" onclick="closeModal()"></div>
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2 class="modal-title">📈 Estatísticas Gerais</h2>
-            <div id="modal-stats"></div>
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Estatísticas Detalhadas
+                </h2>
+                <button class="modal-close" onclick="closeModal()" aria-label="Fechar modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-stats" class="modal-stats"></div>
+                <div class="modal-charts">
+                    <div class="mini-chart-container">
+                        <h4>Distribuição por Funcionário</h4>
+                        <canvas id="employeeDistChart" width="150" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="exportData()">
+                    <i class="fas fa-download"></i>
+                    Exportar Dados
+                </button>
+                <button class="modal-btn modal-btn-primary" onclick="closeModal()">
+                    <i class="fas fa-check"></i>
+                    Fechar
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Floating Action Button -->
+    <div class="fab-container">
+        <button class="fab" onclick="openModal()" aria-label="Menu rápido">
+            <i class="fas fa-chart-line"></i>
+        </button>
+    </div>
+
 
     <script>
+        // Configurações globais
         const API_URL = 'https://api.npoint.io/937422c3fc3d774b2105';
         let rawData = [];
         let filteredData = [];
         let weekNumberChart, weekDayChart;
+        let chartTypes = {
+            weekNumberChart: 'bar',
+            weekDayChart: 'doughnut'
+        };
+
+        // Configuração padrão dos gráficos
+        Chart.defaults.font.family = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#495057';
+        Chart.defaults.plugins.legend.display = true;
+        Chart.defaults.plugins.legend.position = 'bottom';
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = false;
+
+        // Plugin customizado para tooltips avançados
+        const customTooltipPlugin = {
+            id: 'customTooltip',
+            afterDraw: function(chart) {
+                const tooltip = chart.tooltip;
+                if (tooltip && tooltip.opacity > 0) {
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    
+                    // Adicionar efeito de brilho ao ponto ativo
+                    if (tooltip.dataPoints && tooltip.dataPoints.length > 0) {
+                        const point = tooltip.dataPoints[0];
+                        const x = point.element.x;
+                        const y = point.element.y;
+                        
+                        // Criar gradiente radial para o brilho
+                        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 30);
+                        gradient.addColorStop(0, 'rgba(230, 57, 70, 0.4)');
+                        gradient.addColorStop(1, 'rgba(230, 57, 70, 0)');
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 30, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Adicionar anel pulsante
+                        ctx.strokeStyle = '#e63946';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 15 + Math.sin(Date.now() / 200) * 3, 0, 2 * Math.PI);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                    
+                    ctx.restore();
+                }
+            }
+        };
+
+        // Registrar o plugin
+        Chart.register(customTooltipPlugin);
+
+        // Inicialização quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        // Função de inicialização principal
+        async function initializeApp() {
+            try {
+                showLoadingScreen();
+                
+                // Initialize tooltip system
+                tooltipManager = new UITooltipManager();
+                
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Simula loading
+                await loadData();
+                hideLoadingScreen();
+                showToast('Dados carregados com sucesso!', 'success');
+            } catch (error) {
+                hideLoadingScreen();
+                showError(`Erro ao inicializar: ${error.message}`);
+                showToast('Erro ao carregar dados', 'error');
+            }
+        }
 
         // Função principal para carregar dados
         async function loadData() {
             try {
+                showLoadingIndicator();
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 rawData = await response.json();
                 filteredData = [...rawData];
                 
                 populateFilters();
+                updateQuickStats();
                 createCharts();
                 generateInsights();
+                generateTopPerformers();
                 showContent();
+                updateLastUpdateTime();
+                hideLoadingIndicator();
                 
             } catch (error) {
+                hideLoadingIndicator();
                 showError(`Erro ao carregar dados: ${error.message}`);
+                throw error;
             }
+        }
+
+        // Função para mostrar tela de loading
+        function showLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.remove('hidden');
+        }
+
+        // Função para esconder tela de loading
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.add('hidden');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
+
+        // Função para mostrar indicador de loading
+        function showLoadingIndicator() {
+            document.querySelectorAll('.chart-overlay').forEach(overlay => {
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `
+                    <div class="no-data-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando dados...</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Função para esconder indicador de loading
+        function hideLoadingIndicator() {
+            document.querySelectorAll('.chart-overlay').forEach(overlay => {
+                overlay.style.display = 'none';
+            });
         }
 
         // Função para popular os filtros
@@ -421,6 +2211,20 @@
 
             const funcionarioSelect = document.getElementById('funcionario-filter');
             const mesSelect = document.getElementById('mes-filter');
+
+            // Limpar opções existentes
+            funcionarioSelect.innerHTML = '<option value="">Todos os funcionários</option>';
+            mesSelect.innerHTML = '<option value="">Todos os meses</option>';
+
+            // Atualizar labels dos filtros
+            document.querySelector('label[for="funcionario-filter"]').innerHTML = `
+                <i class="fas fa-user"></i>
+                Funcionário
+            `;
+            document.querySelector('label[for="mes-filter"]').innerHTML = `
+                <i class="fas fa-calendar"></i>
+                Mês
+            `;
 
             funcionarios.forEach(func => {
                 const option = document.createElement('option');
@@ -447,38 +2251,412 @@
             const mesFilter = document.getElementById('mes-filter').value;
 
             filteredData = rawData.filter(item => {
-                return (!funcionarioFilter || item.Funcionario === funcionarioFilter) &&
-                       (!mesFilter || item.Mes === mesFilter);
+                const funcionarioMatch = !funcionarioFilter || item.Funcionario === funcionarioFilter;
+                const mesMatch = !mesFilter || item.Mes === mesFilter;
+                return funcionarioMatch && mesMatch;
             });
 
+            updateQuickStats();
             updateCharts();
             generateInsights();
+            generateTopPerformers();
+            updateActiveFilters();
+            showToast('Filtros aplicados', 'info');
+        }
+
+        // Função para atualizar filtros ativos
+        function updateActiveFilters() {
+            const funcionarioFilter = document.getElementById('funcionario-filter').value;
+            const mesFilter = document.getElementById('mes-filter').value;
+            const activeFiltersContainer = document.getElementById('active-filters');
+            const filterTagsContainer = document.getElementById('filter-tags');
+
+            const hasActiveFilters = funcionarioFilter || mesFilter;
+            
+            if (hasActiveFilters) {
+                activeFiltersContainer.style.display = 'block';
+                filterTagsContainer.innerHTML = '';
+
+                if (funcionarioFilter) {
+                    const tag = createFilterTag('Funcionário', funcionarioFilter, () => {
+                        document.getElementById('funcionario-filter').value = '';
+                        applyFilters();
+                    });
+                    filterTagsContainer.appendChild(tag);
+                }
+
+                if (mesFilter) {
+                    const tag = createFilterTag('Mês', mesFilter, () => {
+                        document.getElementById('mes-filter').value = '';
+                        applyFilters();
+                    });
+                    filterTagsContainer.appendChild(tag);
+                }
+            } else {
+                activeFiltersContainer.style.display = 'none';
+            }
+        }
+
+        // Função para criar tag de filtro
+        function createFilterTag(label, value, onRemove) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `
+                ${label}: ${value}
+                <button onclick="this.parentElement.remove(); onRemove();" aria-label="Remover filtro">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            tag.querySelector('button').onclick = onRemove;
+            return tag;
+        }
+
+        // Função para limpar filtros
+        function clearFilters() {
+            document.getElementById('funcionario-filter').value = '';
+            document.getElementById('mes-filter').value = '';
+            applyFilters();
+            showToast('Filtros limpos', 'info');
+        }
+
+        // Função para atualizar estatísticas rápidas
+        function updateQuickStats() {
+            const totalRecords = filteredData.length;
+            const totalReprints = filteredData.reduce((sum, item) => sum + (item.Reimpressoes || item.Descricao || 0), 0);
+            const uniqueEmployees = new Set(filteredData.map(item => item.Funcionario)).size;
+            
+            // Calcular período
+            const dates = filteredData.map(item => new Date(item.Data)).filter(date => !isNaN(date));
+            const weeks = filteredData.map(item => item.NumeroSemana || item['N Semana']).filter(week => week);
+            
+            let periodRange = '--';
+            if (weeks.length > 0) {
+                const minWeek = Math.min(...weeks);
+                const maxWeek = Math.max(...weeks);
+                periodRange = minWeek === maxWeek ? `Semana ${minWeek}` : `Semana ${minWeek} - ${maxWeek}`;
+            } else if (dates.length > 0) {
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                const formatDate = (date) => date.toLocaleDateString('pt-BR', { 
+                    day: '2-digit', 
+                    month: 'short' 
+                });
+                periodRange = minDate.getTime() === maxDate.getTime() ? 
+                    formatDate(minDate) : 
+                    `${formatDate(minDate)} - ${formatDate(maxDate)}`;
+            }
+
+            // Animar contadores
+            animateCounter('total-records', totalRecords);
+            animateCounter('total-reprints', totalReprints);
+            animateCounter('total-employees', uniqueEmployees);
+            document.getElementById('period-range').textContent = periodRange;
+        }
+
+        // Função para animar contadores
+        function animateCounter(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const startValue = parseInt(element.textContent) || 0;
+            const duration = 1000; // 1 segundo
+            const startTime = performance.now();
+
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function (easeOutCubic)
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                const currentValue = Math.round(startValue + (targetValue - startValue) * easeProgress);
+                element.textContent = currentValue.toLocaleString('pt-BR');
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                }
+            }
+
+            requestAnimationFrame(updateCounter);
         }
 
         // Função para criar gráficos
+        // Enhanced UI Tooltip System
+        class UITooltipManager {
+            constructor() {
+                this.activeTooltip = null;
+                this.hoverTimeout = null;
+                this.hideTimeout = null;
+                this.init();
+            }
+
+            init() {
+                this.setupTooltipElements();
+                this.bindEvents();
+            }
+
+            setupTooltipElements() {
+                // Define tooltip configurations for different elements
+                this.tooltipConfig = {
+                    '.stat-card[data-metric="total"]': {
+                        title: '⚠️ Total de Reimpressões',
+                        content: 'Número total de reimpressões no período. Reimpressões indicam problemas na qualidade de impressão inicial.',
+                        tip: 'Meta: Reduzir este número ao mínimo possível'
+                    },
+                    '.stat-card[data-metric="employees"]': {
+                        title: '👥 Funcionários Afetados',
+                        content: 'Funcionários que precisaram solicitar reimpressões. Indica necessidade de treinamento ou melhoria de processos.',
+                        tip: 'Menos funcionários fazendo reimpressões = melhor'
+                    },
+                    '.stat-card[data-metric="week"]': {
+                        title: '📅 Funcionários Impactados',
+                        content: 'Número de funcionários únicos que fazem reimpressões. Mostra a extensão do problema.',
+                        tip: 'Objetivo: Minimizar a quantidade de pessoas afetadas'
+                    },
+                    '.stat-card[data-metric="peak"]': {
+                        title: '📊 Período de Análise',
+                        content: 'Período temporal dos dados analisados para identificar padrões de reimpressões.',
+                        tip: 'Use para comparar diferentes períodos'
+                    },
+                    '.chart-action-btn[data-action="download"]': {
+                        title: '💾 Baixar Relatório',
+                        content: 'Exporta os dados visíveis em formato Excel para análise offline.',
+                        tip: 'Mantenha pressionado para ver mais opções'
+                    },
+                    '.chart-action-btn[data-action="filter"]': {
+                        title: '🔍 Filtros Avançados',
+                        content: 'Aplica filtros customizados por funcionário, data ou departamento.',
+                        tip: 'Use múltiplos filtros para análises específicas'
+                    },
+                    '.chart-action-btn[data-action="refresh"]': {
+                        title: '🔄 Atualizar Dados',
+                        content: 'Recarrega os dados mais recentes do servidor.',
+                        tip: 'Atualização automática a cada 5 minutos'
+                    },
+                    '.chart-action-btn[data-action="fullscreen"]': {
+                        title: '🖥️ Tela Cheia',
+                        content: 'Expande o gráfico para visualização em tela cheia.',
+                        tip: 'Pressione ESC para sair da tela cheia'
+                    },
+                    '.period-filter button': {
+                        title: '📆 Filtro de Período',
+                        content: 'Ajusta o intervalo de tempo para análise dos dados.',
+                        tip: 'Períodos menores mostram mais detalhes'
+                    },
+                    '.employee-filter': {
+                        title: '👤 Filtro por Funcionário',
+                        content: 'Filtra dados específicos de funcionários selecionados.',
+                        tip: 'Use Ctrl+Clique para seleção múltipla'
+                    }
+                };
+            }
+
+            bindEvents() {
+                // Bind tooltip events to all configured elements
+                Object.keys(this.tooltipConfig).forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(element => {
+                        element.addEventListener('mouseenter', (e) => this.showTooltip(e, selector));
+                        element.addEventListener('mouseleave', () => this.hideTooltip());
+                        element.addEventListener('mousemove', (e) => this.updateTooltipPosition(e));
+                    });
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', () => this.hideTooltip());
+                window.addEventListener('scroll', () => this.hideTooltip());
+            }
+
+            showTooltip(event, selector) {
+                clearTimeout(this.hideTimeout);
+                
+                this.hoverTimeout = setTimeout(() => {
+                    const config = this.tooltipConfig[selector];
+                    if (!config) return;
+
+                    this.hideTooltip();
+                    this.createTooltip(event, config);
+                }, 300); // Delay to prevent flickering
+            }
+
+            createTooltip(event, config) {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'custom-tooltip';
+                
+                const position = this.calculatePosition(event);
+                tooltip.setAttribute('data-position', position);
+
+                tooltip.innerHTML = `
+                    <div class="tooltip-header">
+                        <h4>${config.title}</h4>
+                    </div>
+                    <div class="tooltip-body">
+                        <p>${config.content}</p>
+                        <span class="tooltip-tip">💡 ${config.tip}</span>
+                    </div>
+                    <div class="tooltip-arrow"></div>
+                `;
+
+                document.body.appendChild(tooltip);
+                this.activeTooltip = tooltip;
+
+                // Position tooltip
+                this.positionTooltip(event, tooltip, position);
+
+                // Animate in
+                requestAnimationFrame(() => {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transform = 'translateY(10px) scale(0.9)';
+                    tooltip.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    
+                    requestAnimationFrame(() => {
+                        tooltip.style.opacity = '1';
+                        tooltip.style.transform = 'translateY(0) scale(1)';
+                    });
+                });
+            }
+
+            calculatePosition(event) {
+                const viewportHeight = window.innerHeight;
+                const mouseY = event.clientY;
+                
+                // Show tooltip above if mouse is in lower half of screen
+                return mouseY > viewportHeight / 2 ? 'top' : 'bottom';
+            }
+
+            positionTooltip(event, tooltip, position) {
+                const rect = tooltip.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let x = event.clientX;
+                let y = event.clientY;
+
+                // Horizontal positioning
+                if (x + rect.width > viewportWidth - 20) {
+                    x = viewportWidth - rect.width - 20;
+                } else if (x < 20) {
+                    x = 20;
+                } else {
+                    x = x - rect.width / 2;
+                }
+
+                // Vertical positioning
+                if (position === 'top') {
+                    y = y - rect.height - 15;
+                } else {
+                    y = y + 15;
+                }
+
+                // Ensure tooltip stays within viewport
+                if (y < 10) y = 10;
+                if (y + rect.height > viewportHeight - 10) {
+                    y = viewportHeight - rect.height - 10;
+                }
+
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            }
+
+            updateTooltipPosition(event) {
+                if (!this.activeTooltip) return;
+                
+                const position = this.activeTooltip.getAttribute('data-position');
+                this.positionTooltip(event, this.activeTooltip, position);
+            }
+
+            hideTooltip() {
+                clearTimeout(this.hoverTimeout);
+                
+                if (this.activeTooltip) {
+                    const tooltip = this.activeTooltip;
+                    
+                    tooltip.style.transition = 'all 0.2s ease-in';
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transform = 'translateY(-10px) scale(0.9)';
+                    
+                    this.hideTimeout = setTimeout(() => {
+                        if (tooltip.parentNode) {
+                            tooltip.parentNode.removeChild(tooltip);
+                        }
+                    }, 200);
+                    
+                    this.activeTooltip = null;
+                }
+            }
+
+            // Method to add dynamic tooltips
+            addTooltip(selector, config) {
+                this.tooltipConfig[selector] = config;
+                
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    element.addEventListener('mouseenter', (e) => this.showTooltip(e, selector));
+                    element.addEventListener('mouseleave', () => this.hideTooltip());
+                    element.addEventListener('mousemove', (e) => this.updateTooltipPosition(e));
+                });
+            }
+
+            // Method to remove tooltips
+            removeTooltip(selector) {
+                delete this.tooltipConfig[selector];
+                
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    element.removeEventListener('mouseenter', this.showTooltip);
+                    element.removeEventListener('mouseleave', this.hideTooltip);
+                    element.removeEventListener('mousemove', this.updateTooltipPosition);
+                });
+            }
+        }
+
+        // Initialize tooltip manager
+        let tooltipManager;
+
         function createCharts() {
             createWeekNumberChart();
             createWeekDayChart();
         }
 
+        // Função para atualizar gráficos
+        function updateCharts() {
+            if (weekNumberChart) {
+                weekNumberChart.destroy();
+            }
+            if (weekDayChart) {
+                weekDayChart.destroy();
+            }
+            createCharts();
+        }
+
         // Gráfico por número da semana
         function createWeekNumberChart() {
             const ctx = document.getElementById('weekNumberChart').getContext('2d');
-            
             const weekData = processWeekNumberData(filteredData);
             
-            weekNumberChart = new Chart(ctx, {
-                type: 'bar',
+            const config = {
+                type: chartTypes.weekNumberChart,
                 data: {
                     labels: weekData.labels,
                     datasets: [{
                         label: 'Reimpressões',
                         data: weekData.data,
-                        backgroundColor: '#e63946',
-                        borderColor: '#212529',
-                        borderWidth: 1,
-                        borderRadius: 4,
+                        backgroundColor: chartTypes.weekNumberChart === 'line' ? 'rgba(230, 57, 70, 0.1)' : [
+                            'rgba(230, 57, 70, 0.8)',
+                            'rgba(230, 57, 70, 0.6)',
+                            'rgba(230, 57, 70, 0.4)',
+                            'rgba(230, 57, 70, 0.2)'
+                        ],
+                        borderColor: '#e63946',
+                        borderWidth: 2,
+                        borderRadius: chartTypes.weekNumberChart === 'bar' ? 8 : 0,
                         borderSkipped: false,
+                        fill: chartTypes.weekNumberChart === 'line',
+                        tension: chartTypes.weekNumberChart === 'line' ? 0.4 : 0,
+                        pointBackgroundColor: '#e63946',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: chartTypes.weekNumberChart === 'line' ? 6 : 0,
+                        pointHoverRadius: chartTypes.weekNumberChart === 'line' ? 8 : 0,
                     }]
                 },
                 options: {
@@ -489,68 +2667,140 @@
                             display: false
                         },
                         tooltip: {
-                            backgroundColor: '#212529',
+                            enabled: true,
+                            backgroundColor: 'rgba(33, 37, 41, 0.97)',
                             titleColor: '#ffffff',
                             bodyColor: '#ffffff',
                             borderColor: '#e63946',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            displayColors: false,
+                            borderWidth: 2,
+                            cornerRadius: 12,
+                            displayColors: true,
+                            usePointStyle: true,
+                            padding: 16,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold',
+                                family: 'Inter'
+                            },
+                            bodyFont: {
+                                size: 13,
+                                weight: '500',
+                                family: 'Inter'
+                            },
+                            footerFont: {
+                                size: 11,
+                                weight: '400',
+                                family: 'Inter'
+                            },
+                            titleSpacing: 8,
+                            bodySpacing: 6,
+                            footerSpacing: 4,
+                            xAlign: 'center',
+                            yAlign: 'bottom',
+                            caretSize: 8,
+                            caretPadding: 12,
+                            animation: {
+                                duration: 200,
+                                easing: 'easeOutCubic'
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    return `⚠️ Semana ${context[0].label} - Problemas Detectados`;
+                                },
+                                label: function(context) {
+                                    const total = filteredData.reduce((sum, item) => sum + (item.Reimpressoes || item.Descricao || 0), 0);
+                                    const percentage = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
+                                    const value = context.parsed.y;
+                                    return [
+                                        `� ${value} reimpressões (problemas)`,
+                                        `� ${percentage}% do total de problemas`,
+                                        `🎯 Meta: Menor N° reimpressões possível`,
+                                        value === 0 ? '✅ Excelente! Zero problemas!' : '⚠️ Precisa investigar'
+                                    ];
+                                },
+                                footer: function(context) {
+                                    const weekNumber = context[0].label;
+                                    const weekData = filteredData.filter(item => 
+                                        (item.NumeroSemana || item['N Semana']) == weekNumber
+                                    );
+                                    const uniqueEmployees = new Set(weekData.map(item => item.Funcionario)).size;
+                                    return `👥 ${uniqueEmployees} funcionário(s) com problemas`;
+                                },
+                                labelColor: function(context) {
+                                    return {
+                                        borderColor: '#e63946',
+                                        backgroundColor: '#e63946',
+                                        borderWidth: 2,
+                                        borderRadius: 4
+                                    };
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#adb5bd',
-                                lineWidth: 0.5
+                                color: 'rgba(173, 181, 189, 0.1)'
                             },
                             ticks: {
-                                color: '#212529',
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
+                                stepSize: 1
                             }
                         },
                         x: {
                             grid: {
                                 display: false
-                            },
-                            ticks: {
-                                color: '#212529',
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
                             }
                         }
                     },
-                    onHover: (event, elements) => {
-                        event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutCubic'
                     }
                 }
-            });
+            };
+
+            weekNumberChart = new Chart(ctx, config);
         }
 
         // Gráfico por dia da semana
         function createWeekDayChart() {
             const ctx = document.getElementById('weekDayChart').getContext('2d');
-            
             const dayData = processWeekDayData(filteredData);
             
-            weekDayChart = new Chart(ctx, {
-                type: 'bar',
+            // Atualizar título do gráfico
+            document.querySelector('#weekDayChart').closest('.chart-container').querySelector('.chart-title').innerHTML = `
+                <i class="fas fa-chart-pie"></i>
+                Reimpressões por Dia da Semana
+            `;
+            
+            // Atualizar ações do gráfico
+            document.querySelector('#weekDayChart').closest('.chart-container').querySelector('.chart-actions').innerHTML = `
+                <button class="chart-action-btn" onclick="toggleChartType('weekDayChart')" aria-label="Alternar tipo de gráfico">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+            `;
+
+            const config = {
+                type: chartTypes.weekDayChart,
                 data: {
                     labels: dayData.labels,
                     datasets: [{
                         label: 'Reimpressões',
                         data: dayData.data,
-                        backgroundColor: '#adb5bd',
-                        borderColor: '#212529',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                        borderSkipped: false,
+                        backgroundColor: chartTypes.weekDayChart === 'doughnut' ? [
+                            '#e63946',
+                            '#f77f84',
+                            '#faa2a6',
+                            '#adb5bd',
+                            '#6c757d',
+                            '#495057',
+                            '#343a40'
+                        ] : 'rgba(230, 57, 70, 0.8)',
+                        borderColor: '#ffffff',
+                        borderWidth: chartTypes.weekDayChart === 'doughnut' ? 3 : 2,
+                        hoverOffset: chartTypes.weekDayChart === 'doughnut' ? 10 : 0,
+                        borderRadius: chartTypes.weekDayChart === 'bar' ? 8 : 0,
                     }]
                 },
                 options: {
@@ -558,232 +2808,738 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            position: chartTypes.weekDayChart === 'doughnut' ? 'bottom' : 'top',
+                            display: chartTypes.weekDayChart === 'doughnut',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 11
+                                }
+                            }
                         },
                         tooltip: {
-                            backgroundColor: '#212529',
+                            enabled: true,
+                            backgroundColor: 'rgba(33, 37, 41, 0.97)',
                             titleColor: '#ffffff',
                             bodyColor: '#ffffff',
-                            borderColor: '#adb5bd',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            displayColors: false,
+                            borderColor: '#e63946',
+                            borderWidth: 2,
+                            cornerRadius: 12,
+                            displayColors: true,
+                            usePointStyle: true,
+                            padding: 16,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold',
+                                family: 'Inter'
+                            },
+                            bodyFont: {
+                                size: 13,
+                                weight: '500',
+                                family: 'Inter'
+                            },
+                            footerFont: {
+                                size: 11,
+                                weight: '400',
+                                family: 'Inter'
+                            },
+                            titleSpacing: 8,
+                            bodySpacing: 6,
+                            footerSpacing: 4,
+                            xAlign: 'center',
+                            yAlign: 'bottom',
+                            caretSize: 8,
+                            caretPadding: 12,
+                            animation: {
+                                duration: 200,
+                                easing: 'easeOutCubic'
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    const dayName = context[0].label;
+                                    const dayEmojis = {
+                                        'Domingo': '☀️',
+                                        'Segunda': '💼',
+                                        'Terça': '⚡',
+                                        'Quarta': '🎯',
+                                        'Quinta': '🚀',
+                                        'Sexta': '🎉',
+                                        'Sábado': '🏖️'
+                                    };
+                                    const emoji = dayEmojis[dayName] || '📅';
+                                    return `${emoji} ${dayName} - Problemas Detectados`;
+                                },
+                                label: function(context) {
+                                    const total = filteredData.reduce((sum, item) => sum + (item.Reimpressoes || item.Descricao || 0), 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    const value = context.parsed;
+                                    
+                                    if (chartTypes.weekDayChart === 'doughnut') {
+                                        return [
+                                            `� ${value} reimpressões (problemas)`,
+                                            `📊 ${percentage}% dos problemas totais`,
+                                            `🎯 Meta: Menor N° reimpressões possível`,
+                                            value === 0 ? '✅ Perfeito! Zero problemas!' : 
+                                            value <= 2 ? '⚠️ Poucos problemas' : '🚨 Muitos problemas!'
+                                        ];
+                                    } else {
+                                        return [
+                                            `� ${value} reimpressões (problemas)`,
+                                            `� ${percentage}% dos problemas totais`,
+                                            `🎯 Objetivo: Reduzir a ZERO`
+                                        ];
+                                    }
+                                },
+                                footer: function(context) {
+                                    const dayName = context[0].label;
+                                    const dayData = filteredData.filter(item => {
+                                        let day = item.DiaSemana || item.Semana;
+                                        if (day) {
+                                            day = day.toLowerCase();
+                                            if (day.includes('domingo')) day = 'Domingo';
+                                            else if (day.includes('segunda')) day = 'Segunda';
+                                            else if (day.includes('terça') || day.includes('terca')) day = 'Terça';
+                                            else if (day.includes('quarta')) day = 'Quarta';
+                                            else if (day.includes('quinta')) day = 'Quinta';
+                                            else if (day.includes('sexta')) day = 'Sexta';
+                                            else if (day.includes('sábado') || day.includes('sabado')) day = 'Sábado';
+                                        }
+                                        return day === dayName;
+                                    });
+                                    const uniqueEmployees = new Set(dayData.map(item => item.Funcionario)).size;
+                                    const records = dayData.length;
+                                    return `👥 ${uniqueEmployees} funcionário(s) • 📝 ${records} registro(s)`;
+                                },
+                                labelColor: function(context) {
+                                    const colors = [
+                                        '#e63946', '#f77f84', '#faa2a6', '#adb5bd',
+                                        '#6c757d', '#495057', '#343a40'
+                                    ];
+                                    return {
+                                        borderColor: colors[context.dataIndex % colors.length],
+                                        backgroundColor: colors[context.dataIndex % colors.length],
+                                        borderWidth: 2,
+                                        borderRadius: 4
+                                    };
+                                }
+                            }
                         }
                     },
-                    scales: {
+                    scales: chartTypes.weekDayChart === 'bar' ? {
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#adb5bd',
-                                lineWidth: 0.5
+                                color: 'rgba(173, 181, 189, 0.1)'
                             },
                             ticks: {
-                                color: '#212529',
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
+                                stepSize: 1
                             }
                         },
                         x: {
                             grid: {
                                 display: false
-                            },
-                            ticks: {
-                                color: '#212529',
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
                             }
                         }
-                    },
-                    onHover: (event, elements) => {
-                        event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                    } : {},
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutCubic'
                     }
                 }
-            });
+            };
+
+            weekDayChart = new Chart(ctx, config);
         }
 
-        // Processar dados por número da semana
+        // Função para processar dados por semana
         function processWeekNumberData(data) {
-            const weekSums = {};
+            const weekCounts = {};
             
             data.forEach(item => {
-                const week = item['N Semana'];
-                weekSums[week] = (weekSums[week] || 0) + item.Descricao;
+                const weekNumber = item.NumeroSemana || item['N Semana'];
+                const reprints = item.Reimpressoes || item.Descricao || 0;
+                
+                if (weekNumber) {
+                    weekCounts[weekNumber] = (weekCounts[weekNumber] || 0) + reprints;
+                }
             });
 
-            const labels = Object.keys(weekSums).sort((a, b) => a - b);
-            const chartData = labels.map(week => weekSums[week]);
-
-            return { labels: labels.map(w => `Semana ${w}`), data: chartData };
-        }
-
-        // Processar dados por dia da semana
-        function processWeekDayData(data) {
-            const dayOrder = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-            const daySums = {};
+            const sortedWeeks = Object.keys(weekCounts).sort((a, b) => parseInt(a) - parseInt(b));
             
-            data.forEach(item => {
-                const day = item.Semana.toLowerCase();
-                daySums[day] = (daySums[day] || 0) + item.Descricao;
-            });
-
-            const labels = dayOrder.filter(day => daySums[day] !== undefined);
-            const chartData = labels.map(day => daySums[day] || 0);
-
-            return { 
-                labels: labels.map(day => day.charAt(0).toUpperCase() + day.slice(1)), 
-                data: chartData 
+            return {
+                labels: sortedWeeks,
+                data: sortedWeeks.map(week => weekCounts[week])
             };
         }
 
-        // Atualizar gráficos
-        function updateCharts() {
-            const weekData = processWeekNumberData(filteredData);
-            const dayData = processWeekDayData(filteredData);
+        // Função para processar dados por dia da semana
+        function processWeekDayData(data) {
+            const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const dayCounts = {};
+            
+            dayNames.forEach(day => {
+                dayCounts[day] = 0;
+            });
 
-            weekNumberChart.data.labels = weekData.labels;
-            weekNumberChart.data.datasets[0].data = weekData.data;
-            weekNumberChart.update('none');
+            data.forEach(item => {
+                let day = item.DiaSemana || item.Semana;
+                const reprints = item.Reimpressoes || item.Descricao || 0;
+                
+                // Normalizar os nomes dos dias
+                if (day) {
+                    day = day.toLowerCase();
+                    if (day.includes('domingo')) day = 'Domingo';
+                    else if (day.includes('segunda')) day = 'Segunda';
+                    else if (day.includes('terça') || day.includes('terca')) day = 'Terça';
+                    else if (day.includes('quarta')) day = 'Quarta';
+                    else if (day.includes('quinta')) day = 'Quinta';
+                    else if (day.includes('sexta')) day = 'Sexta';
+                    else if (day.includes('sábado') || day.includes('sabado')) day = 'Sábado';
+                    
+                    if (dayNames.includes(day)) {
+                        dayCounts[day] += reprints;
+                    }
+                }
+            });
 
-            weekDayChart.data.labels = dayData.labels;
-            weekDayChart.data.datasets[0].data = dayData.data;
-            weekDayChart.update('none');
+            return {
+                labels: dayNames,
+                data: dayNames.map(day => dayCounts[day])
+            };
         }
 
-        // Gerar insights
+        // Função para alternar tipo de gráfico
+        function toggleChartType(chartId) {
+            if (chartId === 'weekNumberChart') {
+                chartTypes.weekNumberChart = chartTypes.weekNumberChart === 'bar' ? 'line' : 'bar';
+                updateCharts();
+            } else if (chartId === 'weekDayChart') {
+                chartTypes.weekDayChart = chartTypes.weekDayChart === 'doughnut' ? 'bar' : 'doughnut';
+                updateCharts();
+            }
+            
+            showToast('Tipo de gráfico alterado', 'info');
+        }
+
+        // Função para criar tooltips customizados para elementos da UI
+        function initializeUITooltips() {
+            // Tooltip para cartões de estatísticas
+            document.querySelectorAll('.stat-card').forEach((card, index) => {
+                card.addEventListener('mouseenter', function(e) {
+                    showCustomTooltip(e.target, getStatCardTooltip(index), 'top');
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    hideCustomTooltip();
+                });
+            });
+
+            // Tooltip para botões de ação
+            document.querySelectorAll('.chart-action-btn').forEach(btn => {
+                btn.addEventListener('mouseenter', function(e) {
+                    const action = e.target.closest('button').getAttribute('onclick');
+                    const tooltipText = getActionButtonTooltip(action);
+                    showCustomTooltip(e.target, tooltipText, 'bottom');
+                });
+                
+                btn.addEventListener('mouseleave', function() {
+                    hideCustomTooltip();
+                });
+            });
+
+            // Tooltip para filtros
+            document.querySelectorAll('.filter-select').forEach(select => {
+                select.addEventListener('focus', function(e) {
+                    const filterType = e.target.id.includes('funcionario') ? 'funcionario' : 'mes';
+                    showCustomTooltip(e.target, getFilterTooltip(filterType), 'top');
+                });
+                
+                select.addEventListener('blur', function() {
+                    hideCustomTooltip();
+                });
+            });
+        }
+
+        function getStatCardTooltip(index) {
+            const tooltips = [
+                {
+                    title: '📊 Total de Registros',
+                    description: 'Quantidade total de registros de reimpressão no período selecionado',
+                    tip: 'Use os filtros para analisar períodos específicos'
+                },
+                {
+                    title: '🖨️ Total de Reimpressões',
+                    description: 'Soma de todas as reimpressões realizadas',
+                    tip: 'Indica o volume total de trabalho de reimpressão'
+                },
+                {
+                    title: '👥 Funcionários Ativos',
+                    description: 'Número de funcionários que realizaram reimpressões',
+                    tip: 'Mostra a distribuição da carga de trabalho'
+                },
+                {
+                    title: '📅 Período Analisado',
+                    description: 'Intervalo de tempo dos dados apresentados',
+                    tip: 'Baseado nas semanas ou datas dos registros'
+                }
+            ];
+            return tooltips[index] || tooltips[0];
+        }
+
+        function getActionButtonTooltip(action) {
+            if (action && action.includes('toggleChartType')) {
+                return {
+                    title: '🔄 Alternar Visualização',
+                    description: 'Muda entre diferentes tipos de gráfico',
+                    tip: 'Clique para ver os dados em formato diferente'
+                };
+            }
+            if (action && action.includes('export')) {
+                return {
+                    title: '💾 Exportar Dados',
+                    description: 'Baixa os dados em formato CSV',
+                    tip: 'Útil para análises externas'
+                };
+            }
+            return {
+                title: '⚡ Ação Rápida',
+                description: 'Clique para executar esta ação',
+                tip: 'Hover para mais informações'
+            };
+        }
+
+        function getFilterTooltip(type) {
+            if (type === 'funcionario') {
+                return {
+                    title: '👤 Filtro por Funcionário',
+                    description: 'Filtra os dados por funcionário específico',
+                    tip: 'Selecione um funcionário para análise individual'
+                };
+            }
+            return {
+                title: '📅 Filtro por Mês',
+                description: 'Filtra os dados por mês específico',
+                tip: 'Útil para análises sazonais'
+            };
+        }
+
+        function showCustomTooltip(element, content, position = 'top') {
+            hideCustomTooltip(); // Remove tooltip anterior
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            tooltip.innerHTML = `
+                <div class="tooltip-header">
+                    <h4>${content.title}</h4>
+                </div>
+                <div class="tooltip-body">
+                    <p>${content.description}</p>
+                    <small class="tooltip-tip">💡 ${content.tip}</small>
+                </div>
+                <div class="tooltip-arrow"></div>
+            `;
+
+            document.body.appendChild(tooltip);
+
+            // Posicionar tooltip
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            let top, left;
+            
+            if (position === 'top') {
+                top = rect.top - tooltipRect.height - 10;
+                left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            } else {
+                top = rect.bottom + 10;
+                left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            }
+
+            // Ajustar se sair da tela
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) top = rect.bottom + 10;
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.style.opacity = '0';
+            tooltip.style.transform = 'scale(0.8) translateY(10px)';
+
+            // Animar entrada
+            requestAnimationFrame(() => {
+                tooltip.style.transition = 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                tooltip.style.opacity = '1';
+                tooltip.style.transform = 'scale(1) translateY(0)';
+            });
+        }
+
+        function hideCustomTooltip() {
+            const existingTooltip = document.querySelector('.custom-tooltip');
+            if (existingTooltip) {
+                existingTooltip.style.opacity = '0';
+                existingTooltip.style.transform = 'scale(0.8) translateY(10px)';
+                setTimeout(() => {
+                    if (existingTooltip.parentNode) {
+                        existingTooltip.parentNode.removeChild(existingTooltip);
+                    }
+                }, 300);
+            }
+        }
         function generateInsights() {
             const insights = [];
             
             if (filteredData.length === 0) {
-                insights.push('Nenhum dado disponível para os filtros selecionados');
-                const insightsContainer = document.getElementById('insights-content');
-                insightsContainer.innerHTML = insights.map(insight => 
-                    `<div class="insight-item">${insight}</div>`
-                ).join('');
+                insights.push('Nenhum dado disponível para análise');
+            } else {
+                // Insight 1: Total de reimpressões
+                const totalReprints = filteredData.reduce((sum, item) => sum + (item.Reimpressoes || item.Descricao || 0), 0);
+                insights.push(`Total de ${totalReprints} reimpressões registradas no período`);
+
+                // Insight 2: Funcionário com mais reimpressões
+                const funcionarioStats = {};
+                filteredData.forEach(item => {
+                    const reprints = item.Reimpressoes || item.Descricao || 0;
+                    funcionarioStats[item.Funcionario] = (funcionarioStats[item.Funcionario] || 0) + reprints;
+                });
+                
+                if (Object.keys(funcionarioStats).length > 0) {
+                    const topFuncionario = Object.entries(funcionarioStats).reduce((a, b) => a[1] > b[1] ? a : b);
+                    insights.push(`${topFuncionario[0]} lidera com ${topFuncionario[1]} reimpressões`);
+                }
+
+                // Insight 3: Dia da semana com mais atividade
+                const dayStats = {};
+                filteredData.forEach(item => {
+                    let day = item.DiaSemana || item.Semana;
+                    const reprints = item.Reimpressoes || item.Descricao || 0;
+                    if (day) {
+                        // Normalizar nome do dia
+                        day = day.toLowerCase();
+                        if (day.includes('domingo')) day = 'Domingo';
+                        else if (day.includes('segunda')) day = 'Segunda';
+                        else if (day.includes('terça') || day.includes('terca')) day = 'Terça';
+                        else if (day.includes('quarta')) day = 'Quarta';
+                        else if (day.includes('quinta')) day = 'Quinta';
+                        else if (day.includes('sexta')) day = 'Sexta';
+                        else if (day.includes('sábado') || day.includes('sabado')) day = 'Sábado';
+                        
+                        dayStats[day] = (dayStats[day] || 0) + reprints;
+                    }
+                });
+                
+                if (Object.keys(dayStats).length > 0) {
+                    const topDay = Object.entries(dayStats).reduce((a, b) => a[1] > b[1] ? a : b);
+                    insights.push(`${topDay[0]} é o dia mais ativo com ${topDay[1]} reimpressões`);
+                }
+
+                // Insight 4: Média por registro
+                const avgReprints = (totalReprints / filteredData.length).toFixed(1);
+                insights.push(`Média de ${avgReprints} reimpressões por registro`);
+
+                // Insight 5: Análise temporal
+                const weeks = filteredData.map(item => item.NumeroSemana || item['N Semana']).filter(week => week);
+                if (weeks.length > 1) {
+                    const uniqueWeeks = [...new Set(weeks)];
+                    insights.push(`Dados coletados em ${uniqueWeeks.length} semanas diferentes`);
+                }
+            }
+
+            // Atualizar o DOM
+            const insightsContainer = document.getElementById('insights-content');
+            insightsContainer.innerHTML = '';
+            
+            // Atualizar título e ações da seção de insights
+            document.querySelector('.insights-title').innerHTML = `
+                <i class="fas fa-lightbulb"></i>
+                Insights Automáticos
+            `;
+            
+            document.querySelector('.insights-actions').innerHTML = `
+                <button class="insights-action-btn" onclick="generateInsights()" aria-label="Atualizar insights">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            `;
+
+            insights.forEach((insight, index) => {
+                const insightElement = document.createElement('div');
+                insightElement.className = 'insight-item';
+                insightElement.style.animationDelay = `${index * 0.1}s`;
+                insightElement.textContent = insight;
+                insightsContainer.appendChild(insightElement);
+            });
+        }
+
+        // Função para gerar top performers
+        function generateTopPerformers() {
+            const funcionarioStats = {};
+            
+            filteredData.forEach(item => {
+                const reprints = item.Reimpressoes || item.Descricao || 0;
+                funcionarioStats[item.Funcionario] = (funcionarioStats[item.Funcionario] || 0) + reprints;
+            });
+
+            const sortedPerformers = Object.entries(funcionarioStats)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            // Atualizar título da seção
+            document.querySelector('.performers-title').innerHTML = `
+                <i class="fas fa-trophy"></i>
+                Top Reimpressões
+            `;
+
+            const performersContainer = document.getElementById('top-performers');
+            performersContainer.innerHTML = '';
+
+            if (sortedPerformers.length === 0) {
+                performersContainer.innerHTML = '<p style="text-align: center; color: var(--neutral-gray);">Nenhum dado disponível</p>';
                 return;
             }
 
-            const totalReimpressoes = filteredData.reduce((sum, item) => sum + item.Descricao, 0);
-            const funcionarios = [...new Set(filteredData.map(item => item.Funcionario))];
-            
-            // Performance por funcionário
-            const funcionarioStats = {};
-            filteredData.forEach(item => {
-                funcionarioStats[item.Funcionario] = (funcionarioStats[item.Funcionario] || 0) + item.Descricao;
+            sortedPerformers.forEach(([nome, count], index) => {
+                const performerElement = document.createElement('div');
+                performerElement.className = 'performer-item';
+                performerElement.style.animationDelay = `${index * 0.1}s`;
+                
+                performerElement.innerHTML = `
+                    <div class="performer-rank">${index + 1}</div>
+                    <div class="performer-info">
+                        <div class="performer-name">${nome}</div>
+                        <div class="performer-count">${count} reimpressões</div>
+                    </div>
+                    <div class="performer-badge">
+                        ${index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉'}
+                    </div>
+                `;
+                
+                performersContainer.appendChild(performerElement);
             });
-            
-            const topFuncionario = Object.keys(funcionarioStats).reduce((a, b) => 
-                funcionarioStats[a] > funcionarioStats[b] ? a : b
-            );
-
-            // Dia da semana com mais reimpressões
-            const dayStats = {};
-            filteredData.forEach(item => {
-                dayStats[item.Semana] = (dayStats[item.Semana] || 0) + item.Descricao;
-            });
-            
-            const topDay = Object.keys(dayStats).length > 0 ? 
-                Object.keys(dayStats).reduce((a, b) => dayStats[a] > dayStats[b] ? a : b) : 'N/A';
-
-            // Número da semana com mais reimpressões
-            const weekStats = {};
-            filteredData.forEach(item => {
-                weekStats[item['N Semana']] = (weekStats[item['N Semana']] || 0) + item.Descricao;
-            });
-            
-            const topWeek = Object.keys(weekStats).length > 0 ? 
-                Object.keys(weekStats).reduce((a, b) => weekStats[a] > weekStats[b] ? a : b) : 'N/A';
-
-            const mediaRegistro = filteredData.length > 0 ? (totalReimpressoes / filteredData.length).toFixed(1) : '0';
-
-            insights.push(`Total de ${totalReimpressoes} reimpressões analisadas em ${filteredData.length} registros`);
-            insights.push(`${topFuncionario} lidera com ${funcionarioStats[topFuncionario]} reimpressões`);
-            insights.push(`${topDay} é o dia com maior volume (${dayStats[topDay]} reimpressões)`);
-            insights.push(`Semana ${topWeek} teve o pico de atividade (${weekStats[topWeek]} reimpressões)`);
-            insights.push(`Média de ${mediaRegistro} reimpressões por registro`);
-
-            const insightsContainer = document.getElementById('insights-content');
-            insightsContainer.innerHTML = insights.map(insight => 
-                `<div class="insight-item">${insight}</div>`
-            ).join('');
         }
 
-        // Funções do modal
+        // Função para mostrar conteúdo
+        function showContent() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        }
+
+        // Função para mostrar erro
+        function showError(message) {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        // Função para atualizar horário
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('update-time').textContent = timeString;
+        }
+
+        // Função para refresh dos dados
+        async function refreshData() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.style.transform = 'rotate(180deg) scale(1.1)';
+            
+            try {
+                await loadData();
+                showToast('Dados atualizados!', 'success');
+            } catch (error) {
+                showToast('Erro ao atualizar dados', 'error');
+            } finally {
+                setTimeout(() => {
+                    refreshBtn.style.transform = '';
+                }, 300);
+            }
+        }
+
+        // Funções do Modal
         function openModal() {
             const modal = document.getElementById('statsModal');
-            const modalStats = document.getElementById('modal-stats');
-            
-            const totalRegistros = filteredData.length;
-            const totalReimpressoes = filteredData.reduce((sum, item) => sum + item.Descricao, 0);
-            const funcionarios = [...new Set(filteredData.map(item => item.Funcionario))];
-            const meses = [...new Set(filteredData.map(item => item.Mes))];
-            
-            // Calcular período
-            const semanas = [...new Set(filteredData.map(item => item['N Semana']))].sort((a, b) => a - b);
-            const periodoInicial = semanas.length > 0 ? `Semana ${semanas[0]}` : 'N/A';
-            const periodoFinal = semanas.length > 0 ? `Semana ${semanas[semanas.length - 1]}` : 'N/A';
-            
-            const mediaRegistro = totalRegistros > 0 ? (totalReimpressoes / totalRegistros).toFixed(1) : '0';
-
-            modalStats.innerHTML = `
-                <div class="stat-row">
-                    <span class="stat-label">Total de Registros:</span>
-                    <span class="stat-value">${totalRegistros}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Período Analisado:</span>
-                    <span class="stat-value">${periodoInicial} - ${periodoFinal}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Total de Reimpressões:</span>
-                    <span class="stat-value">${totalReimpressoes}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Funcionários Ativos:</span>
-                    <span class="stat-value">${funcionarios.length}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Meses Analisados:</span>
-                    <span class="stat-value">${meses.length}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Média por Registro:</span>
-                    <span class="stat-value">${mediaRegistro}</span>
-                </div>
-            `;
-
             modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Preencher estatísticas do modal
+            fillModalStats();
         }
 
         function closeModal() {
             const modal = document.getElementById('statsModal');
             modal.classList.remove('show');
+            document.body.style.overflow = '';
         }
 
-        // Função para mostrar erro
-        function showError(message) {
-            document.getElementById('loading').style.display = 'none';
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
+        function fillModalStats() {
+            const modalStats = document.getElementById('modal-stats');
+            
+            const totalReprints = filteredData.reduce((sum, item) => sum + (item.Reimpressoes || item.Descricao || 0), 0);
+            const avgReprints = filteredData.length > 0 ? (totalReprints / filteredData.length).toFixed(2) : 0;
+            const uniqueEmployees = new Set(filteredData.map(item => item.Funcionario)).size;
+            const uniqueDays = new Set(filteredData.map(item => item.DiaSemana || item.Semana)).size;
+            const uniqueWeeks = new Set(filteredData.map(item => item.NumeroSemana || item['N Semana']).filter(week => week)).size;
+            
+            modalStats.innerHTML = `
+                <div class="stat-row">
+                    <span class="stat-label">Total de Registros</span>
+                    <span class="stat-value">${filteredData.length}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total de Reimpressões</span>
+                    <span class="stat-value">${totalReprints}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Média por Registro</span>
+                    <span class="stat-value">${avgReprints}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Funcionários Únicos</span>
+                    <span class="stat-value">${uniqueEmployees}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Semanas Analisadas</span>
+                    <span class="stat-value">${uniqueWeeks}</span>
+                </div>
+            `;
+
+            // Atualizar conteúdo do mini gráfico
+            document.querySelector('.mini-chart-container h4').textContent = 'Distribuição por Funcionário';
+            
+            // Atualizar botões do footer
+            document.querySelector('.modal-btn-secondary').innerHTML = `
+                <i class="fas fa-download"></i>
+                Exportar
+            `;
+            document.querySelector('.modal-btn-primary').innerHTML = `
+                <i class="fas fa-check"></i>
+                Fechar
+            `;
         }
 
-        // Função para mostrar conteúdo
-        function showContent() {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-        }
-
-        // Fechar modal ao clicar fora
-        window.onclick = function(event) {
-            const modal = document.getElementById('statsModal');
-            if (event.target === modal) {
-                closeModal();
+        // Função para exportar dados
+        function exportData() {
+            const csvContent = convertToCSV(filteredData);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `reimpressoes_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('Dados exportados com sucesso!', 'success');
             }
         }
+
+        // Função para converter dados para CSV
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            // Adicionar cabeçalhos
+            csvRows.push(headers.join(','));
+            
+            // Adicionar dados
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    return typeof value === 'string' ? `"${value}"` : value;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        // Sistema de Toast
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const toastId = Date.now();
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <span class="toast-title">${getToastTitle(type)}</span>
+                    <button class="toast-close" onclick="removeToast(${toastId})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="toast-body">${message}</div>
+            `;
+            
+            toast.setAttribute('data-toast-id', toastId);
+            toastContainer.appendChild(toast);
+            
+            // Auto remove após 5 segundos
+            setTimeout(() => removeToast(toastId), 5000);
+        }
+
+        function getToastTitle(type) {
+            const titles = {
+                success: 'Sucesso',
+                error: 'Erro',
+                warning: 'Aviso',
+                info: 'Informação'
+            };
+            return titles[type] || 'Notificação';
+        }
+
+        function removeToast(toastId) {
+            const toast = document.querySelector(`[data-toast-id="${toastId}"]`);
+            if (toast) {
+                toast.style.transform = 'translateX(320px)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+
+        // Event Listeners adicionais
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Fechar modal ao clicar no backdrop
+        document.getElementById('statsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Detectar quando os gráficos estão visíveis para animação
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                }
+            });
+        }, observerOptions);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.chart-container').forEach(container => {
+                observer.observe(container);
+            });
+        });
 
         // Prevenir zoom duplo toque em iOS
         let lastTouchEnd = 0;
@@ -794,9 +3550,6 @@
             }
             lastTouchEnd = now;
         }, false);
-
-        // Inicializar quando a página carregar
-        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
