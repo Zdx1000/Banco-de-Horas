@@ -259,6 +259,13 @@
               <p>Visualizar e gerenciar eventos</p>
             </div>
           </div>
+          <div class="option-card" onclick="selectOption('export')">
+            <div class="option-icon">📤</div>
+            <div class="option-content">
+              <h3>Exportar</h3>
+              <p>Exportar eventos para o excel por periodo</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -298,6 +305,33 @@
         <button onclick="goToToday()" class="control-button">📅 Hoje</button>
         <button onclick="addEventToSelectedDate()" class="control-button export-btn">➕ Adicionar Evento</button>
         <button onclick="closeCalendarViewModal()" class="control-button">Fechar</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de Exportação de Eventos -->
+  <div id="exportModal" class="modal">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <span class="close" onclick="closeExportModal()">&times;</span>
+        <h2>📤 Exportar Eventos</h2>
+      </div>
+      <div class="modal-body">
+        <div class="event-form">
+          <div class="form-group">
+            <label for="exportStartDate">Data inicial:</label>
+            <input type="date" id="exportStartDate" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="exportEndDate">Data final:</label>
+            <input type="date" id="exportEndDate" class="form-input">
+          </div>
+          <p style="margin-top: 8px; opacity: .8; font-size: 12px;">Escolha o período desejado para exportar os eventos em Excel.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="exportEventsByPeriod()" class="control-button export-btn">📄 Exportar</button>
+        <button onclick="closeExportModal()" class="control-button">Fechar</button>
       </div>
     </div>
   </div>

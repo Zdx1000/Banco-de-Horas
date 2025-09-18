@@ -448,7 +448,6 @@ function exportarDadosAtuais() {
   }
 }
 
-
 // Carregar dados salvos do localStorage (se existirem)
 carregarDadosSalvos();
 
@@ -765,7 +764,9 @@ async function resetarAusenciasCalendario() {
       alert('Erro ao resetar eventos. Verifique a conexão com o servidor.');
     }
   }
-}// Função para obter os dados atualizados baseados no servidor
+}
+
+// Função para obter os dados atualizados baseados no servidor
 function obterDadosAtualizados() {
   const events = calendarEvents || []; // Usar eventos do servidor
   const today = new Date();
@@ -1156,6 +1157,86 @@ function selectOption(option) {
   } else if (option === 'calendar') {
     // Abrir o calendário
     openCalendarViewModal();
+  } else if (option === 'export') {
+    // Abrir modal de exportação
+    openExportModal();
+  }
+}
+
+// Modal de exportação
+function openExportModal() {
+  const modal = document.getElementById('exportModal');
+  if (!modal) return;
+  // Pré-preencher datas com mês atual
+  const start = document.getElementById('exportStartDate');
+  const end = document.getElementById('exportEndDate');
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  if (start && !start.value) start.value = firstDay.toISOString().split('T')[0];
+  if (end && !end.value) end.value = lastDay.toISOString().split('T')[0];
+  modal.style.display = '';
+  modal.classList.add('show');
+}
+
+function closeExportModal() {
+  const modal = document.getElementById('exportModal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  setTimeout(() => { if (!modal.classList.contains('show')) modal.style.display = 'none'; }, 120);
+}
+
+async function exportEventsByPeriod() {
+  try {
+    const startInput = document.getElementById('exportStartDate');
+    const endInput = document.getElementById('exportEndDate');
+    const start = startInput?.value;
+    const end = endInput?.value;
+
+    if (!start || !end) {
+      alert('Informe a data inicial e final.');
+      return;
+    }
+    if (start > end) {
+      alert('A data inicial não pode ser maior que a final.');
+      return;
+    }
+
+    // Garantir que eventos estão atualizados
+    if (!Array.isArray(calendarEvents) || calendarEvents.length === 0) {
+      await loadEventsFromServer();
+    }
+
+    // Filtrar por período (datas em formato YYYY-MM-DD)
+    const filtered = (calendarEvents || []).filter(ev => ev.date >= start && ev.date <= end);
+
+    if (filtered.length === 0) {
+      alert('Nenhum evento encontrado no período selecionado.');
+      return;
+    }
+
+    // Montar dados para Excel
+    const rows = filtered.map(ev => ({
+      Data: ev.date,
+      Matricula: ev.employeeId,
+      Colaborador: ev.employeeName,
+      Tipo: getAbsenceTypeName(ev.absenceType),
+      Observacoes: ev.notes || '',
+      CriadoEm: ev.createdAt ? new Date(ev.createdAt).toLocaleString('pt-BR') : ''
+    }));
+
+    // Criar workbook e sheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Eventos');
+
+    const filename = `eventos_${start}_a_${end}.xlsx`;
+    XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
+
+    closeExportModal();
+  } catch (err) {
+    console.error('Erro ao exportar eventos:', err);
+    alert('Erro ao exportar eventos. Veja o console para detalhes.');
   }
 }
 
@@ -1831,6 +1912,7 @@ function checkEmployeeConflicts() {
   }
   
   if (!employeeId) {
+   
     hideConflictWarning();
     return;
   }
@@ -2868,8 +2950,9 @@ window.testMultipleEventsCreation = function() {
   console.log('1. Tente marcar um evento para um colaborador em uma data que já tem evento');
   console.log('2. Observe o aviso de conflito no modal (⚠️ CONFLITO DETECTADO!)');
   console.log('3. Clique em "Ver Evento" para detalhes do evento existente');
-  console.log('4. Para eventos únicos: Confirme se deseja substituir');
-  console.log('5. Para múltiplos dias: Escolha se quer pular conflitos ou cancelar');
+  console.log('4. Para substituir, continue com o cadastro atual');
+  console.log('5. Para eventos únicos: Confirme se deseja substituir');
+  console.log('6. Para múltiplos dias: Escolha se quer pular conflitos ou cancelar');
   console.log('');
   console.log('🔥 NOVAS FUNCIONALIDADES:');
   console.log('• ✅ Apenas 1 evento por pessoa por dia');
