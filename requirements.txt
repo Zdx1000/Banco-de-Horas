@@ -1,0 +1,12 @@
+# Dependências do projeto Banco de Horas
+# Observações:
+# - tkinter NÃO deve ser instalado via pip (faz parte da stdlib do Python)
+# - Para leitura de .xlsx usamos openpyxl; para .xls usamos xlrd==1.2.0
+# - Flask-SQLAlchemy 3.x funciona com SQLAlchemy 2.x
+
+Flask>=2.3
+Flask-SQLAlchemy>=3.1
+SQLAlchemy>=2.0
+pandas>=2.1
+openpyxl>=3.1
+xlrd==1.2.0
