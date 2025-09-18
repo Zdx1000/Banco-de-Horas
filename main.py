@@ -191,7 +191,6 @@ def processar_dados(Relatorio_Saldos):
     ).astype(float)
     Relatorio_Saldos["DIAS P/ COMPENSAR"] = Relatorio_Saldos[mes_proximo] / Relatorio_Saldos["C.HORÁRIA"]
     Relatorio_Saldos["DIAS P/ COMPENSAR"] = Relatorio_Saldos["DIAS P/ COMPENSAR"].round(2)
-    Relatorio_Saldos.loc[Relatorio_Saldos["DIAS P/ COMPENSAR"] < 0, "DIAS P/ COMPENSAR"] = 0
 
     salario = {
         "LIDER PRODUCAO": 4077.00,

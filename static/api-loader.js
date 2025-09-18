@@ -29,8 +29,10 @@ let debounceTimer;
 // Helper: formata horas de maneira agradável
 function formatHorasTexto(totalHoras, options = { style: 'compact' }) {
   const horasPorDia = 7.2;
-  const dias = Math.floor(totalHoras / horasPorDia);
-  const horasRestantes = totalHoras % horasPorDia;
+  const negativo = Number(totalHoras) < 0;
+  const valorAbs = Math.abs(Number(totalHoras || 0));
+  const dias = Math.floor(valorAbs / horasPorDia);
+  const horasRestantes = valorAbs % horasPorDia;
   const horas = Math.floor(horasRestantes);
   const minutos = Math.round((horasRestantes - horas) * 60);
 
@@ -41,7 +43,8 @@ function formatHorasTexto(totalHoras, options = { style: 'compact' }) {
     if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
     if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
     if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
-    return texto || "0 minuto";
+    const base = texto || "0 minuto";
+    return negativo ? `- ${base}` : base;
   }
 
   // compact: 2d • 4h • 12m
@@ -50,7 +53,8 @@ function formatHorasTexto(totalHoras, options = { style: 'compact' }) {
   if (horas > 0) partes.push(`${horas}h`);
   if (minutos > 0) partes.push(`${minutos}m`);
   const texto = partes.join(' • ');
-  return texto || '0m';
+  const base = texto || '0m';
+  return negativo ? `- ${base}` : base;
 }
 
 function formatHorasTitulo(totalHoras) {
@@ -633,15 +637,15 @@ function atualizarTabela3(tabela3Data) {
         }
         
         // Coloração especial para valores monetários
-        if (key === "SALARIO A RECEBER" && typeof valor === 'number') {
-          const ratio = Math.min(valor, 1000) / 1000;
-          td.style.backgroundColor = "rgba(255, 0, 0, " + ratio + ")";
-          if (ratio > 0.7) {
+        if (key === "SALARIO A RECEBER" && typeof valor === 'number' && !isNaN(valor)) {
+          const mag = Math.min(Math.abs(valor), 1000) / 1000; // usar magnitude
+          td.style.backgroundColor = "rgba(255, 0, 0, " + mag + ")";
+          if (mag > 0.7) {
             td.style.color = "#fff";
           }
-        } else if (key === "SALARIO ABONADO" && typeof valor === 'number') {
-          const ratio = Math.min(valor, 1000) / 1000;
-          td.style.backgroundColor = "rgba(0, 255, 0, " + ratio + ")";
+        } else if (key === "SALARIO ABONADO" && typeof valor === 'number' && !isNaN(valor)) {
+          const mag = Math.min(Math.abs(valor), 1000) / 1000;
+          td.style.backgroundColor = "rgba(0, 255, 0, " + mag + ")";
         }
       }
       
