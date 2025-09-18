@@ -1,3 +1,27 @@
+// Toggle global de logs de debug (idempotente) — por padrão, desabilita console.log
+(function(){
+  if (typeof window === 'undefined' || typeof console === 'undefined') return;
+  if (window.__logToggleInit) return; // evita reinicializar
+  window.__logToggleInit = true;
+
+  try {
+    if (!console.__origLog && typeof console.log === 'function') {
+      console.__origLog = console.log.bind(console);
+    }
+    window.enableDebugLogs = function(){
+      if (console.__origLog) console.log = console.__origLog;
+      console.__silenced = false;
+      window.DEBUG = true;
+    };
+    window.disableDebugLogs = function(){
+      console.log = function(){};
+      console.__silenced = true;
+      window.DEBUG = false;
+    };
+    // desabilita por padrão
+    window.disableDebugLogs();
+  } catch(_) {}
+})();
 
 // Variável global para armazenar dados da API tabela_3
 let tabela3Data = null;
@@ -466,7 +490,7 @@ function calcularCompensacao() {
     }
   });
 
-  console.log(`📊 Contadores de ausências para hoje (${todayStr}):`, contadores);
+  if (window.DEBUG) console.log(`📊 Contadores de ausências para hoje (${todayStr}):`, contadores);
   return contadores;
 }
 
@@ -477,7 +501,7 @@ function calcularCompensacao() {
 
 // Função para atualizar todas as ausências da tabela baseado no calendário
 function refreshTableAbsencesFromCalendar() {
-  console.log('🔄 Atualizando tabela com eventos do calendário (versão melhorada)...');
+  if (window.DEBUG) console.log('🔄 Atualizando tabela com eventos do calendário (versão melhorada)...');
   
   // Se os dados da API já têm ausências, não sobrescrever
   const dadosTabela3 = getTabela3Data();
@@ -503,7 +527,7 @@ function refreshTableAbsencesFromCalendar() {
     return eventDateStr === todayStr;
   });
   
-  console.log(`� ${todayEvents.length} eventos encontrados para hoje (${todayStr})`);
+  if (window.DEBUG) console.log(`� ${todayEvents.length} eventos encontrados para hoje (${todayStr})`);
   
   if (todayEvents.length === 0) {
     console.log('⚠️ Nenhum evento para hoje, mantendo valores atuais da tabela');
@@ -550,7 +574,7 @@ function refreshTableAbsencesFromCalendar() {
           select.classList.add(absenceValue.toLowerCase());
         }
         
-        console.log(`✅ Ausência atualizada: ${matricula} - ${colaborador} → ${absenceValue}`);
+  if (window.DEBUG) console.log(`✅ Ausência atualizada: ${matricula} - ${colaborador} → ${absenceValue}`);
       }
     }
     // NÃO limpar valores se não encontrar evento (manter estado atual)
@@ -643,8 +667,10 @@ function gerarRelatorioAusencias() {
     eventosPorMes[mesAno].eventos.push(event);
   });
   
-  console.log('📊 RELATÓRIO DETALHADO DE ausenciaS (CALENDÁRIO)');
-  console.log('='.repeat(50));
+  if (window.DEBUG) {
+    console.log('📊 RELATÓRIO DETALHADO DE ausenciaS (CALENDÁRIO)');
+    console.log('='.repeat(50));
+  }
   
   Object.keys(eventosPorMes)
     .sort()
@@ -657,23 +683,27 @@ function gerarRelatorioAusencias() {
       ];
       const nomeMes = nomesMeses[parseInt(mes) - 1];
       
-      console.log(`\n📅 ${nomeMes} ${ano}`);
-      console.log(`   🏖️ Folgas: ${dados.folga}`);
-      console.log(`   ✈️ Ferias: ${dados.ferias}`);
-      console.log(`   🏥 Atestados: ${dados.atestado}`);
-      console.log(`   ⚠️ Faltas: ${dados.falta}`);
-      console.log(`   📊 Total: ${dados.eventos.length}`);
+      if (window.DEBUG) {
+        console.log(`\n📅 ${nomeMes} ${ano}`);
+        console.log(`   🏖️ Folgas: ${dados.folga}`);
+        console.log(`   ✈️ Ferias: ${dados.ferias}`);
+        console.log(`   🏥 Atestados: ${dados.atestado}`);
+        console.log(`   ⚠️ Faltas: ${dados.falta}`);
+        console.log(`   📊 Total: ${dados.eventos.length}`);
+      }
     });
   
   const total = calcularCompensacao();
-  console.log('\n' + '='.repeat(50));
-  console.log('📈 RESUMO GERAL:');
-  console.log(`   Total de eventos: ${events.length}`);
-  console.log(`   🏖️ Total Folgas: ${total.folga}`);
-  console.log(`   ✈️ Total Ferias: ${total.ferias}`);
-  console.log(`   🏥 Total Atestados: ${total.atestado}`);
-  console.log(`   ⚠️ Total Faltas: ${total.falta}`);
-  console.log('='.repeat(50));
+  if (window.DEBUG) {
+    console.log('\n' + '='.repeat(50));
+    console.log('📈 RESUMO GERAL:');
+    console.log(`   Total de eventos: ${events.length}`);
+    console.log(`   🏖️ Total Folgas: ${total.folga}`);
+    console.log(`   ✈️ Total Ferias: ${total.ferias}`);
+    console.log(`   🏥 Total Atestados: ${total.atestado}`);
+    console.log(`   ⚠️ Total Faltas: ${total.falta}`);
+    console.log('='.repeat(50));
+  }
   
   return eventosPorMes;
 }
@@ -1048,24 +1078,55 @@ function updateCurrentDate() {
 }
 
 // Atualizar a data quando a página carregar
+// Bloco único de inicialização DOMContentLoaded consolidado
 document.addEventListener('DOMContentLoaded', function() {
-  // ✅ CORREÇÃO: Garantir que todos os modais estejam fechados na inicialização
+  // 1) Garantir que todos os modais estejam fechados
   const modalIds = ['compensacaoModal', 'eventModal', 'calendarModal', 'calendarOptionsModal'];
   modalIds.forEach(modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('show');
-      modal.style.display = 'none'; // Forçar para garantir
+      modal.style.display = 'none';
     }
   });
-  
+
+  // 2) Data atual no header
   updateCurrentDate();
-  // Atualizar a data a cada minuto
   setInterval(updateCurrentDate, 60000);
-  
-  // Aguardar um pouco para garantir que os dados estejam carregados
+
+  // 3) Estilos dos indicadores de ausência
+  addIndicatorStyles();
+
+  // 4) Carregar dados da API e renderizar calendário após chegada
+  if (typeof carregarDadosAPI === 'function') {
+    carregarDadosAPI().then(() => {
+      if (typeof renderCalendar === 'function') {
+        setTimeout(renderCalendar, 200);
+      }
+    }).catch(() => {});
+  }
+
+  // 5) Inicializar atualizador de ausências após carregamento inicial
+  setTimeout(() => {
+    if (typeof startAbsenceUpdater === 'function') startAbsenceUpdater();
+  }, 2000);
+
+  // 6) Utilitários de debug no window
+  if (typeof verificarDadosCarregados === 'function') window.verificarDadosCarregados = verificarDadosCarregados;
+  if (typeof carregarDadosAPI === 'function') window.carregarDadosAPI = carregarDadosAPI;
+  if (typeof getTabela3Data === 'function') window.getTabela3Data = getTabela3Data;
+
+  // 7) Sanitizar modal que possa iniciar aberto por algum estado residual
+  const modal = document.getElementById('compensacaoModal');
+  if (modal && modal.classList.contains('show')) {
+    modal.classList.remove('show');
+  }
+
+  // 8) Qualquer preparação adicional dependente dos dados locais
   setTimeout(function() {
-    const employees = getEmployeesFromData();
+    if (typeof getEmployeesFromData === 'function') {
+      getEmployeesFromData();
+    }
   }, 1000);
 });
 
@@ -1101,23 +1162,27 @@ function selectOption(option) {
 // Função para carregar eventos do servidor
 async function loadEventsFromServer() {
   try {
-    console.log('🔄 Carregando eventos do servidor...');
-    console.log('📡 Fazendo requisição para: /eventos');
+    if (window.DEBUG) {
+      console.log('🔄 Carregando eventos do servidor...');
+      console.log('📡 Fazendo requisição para: /eventos');
+    }
     
     const response = await fetch('/eventos', {
       method: 'GET',
       credentials: 'include'
     });
-    console.log('📡 Status da resposta:', response.status, response.statusText);
+  if (window.DEBUG) console.log('📡 Status da resposta:', response.status, response.statusText);
     
     const data = await response.json();
-    console.log('📋 Dados recebidos do servidor:', data);
+  if (window.DEBUG) console.log('📋 Dados recebidos do servidor:', data);
     
     if (response.ok) {
       calendarEvents = data.eventos || [];
       window.calendarEvents = calendarEvents; // Tornar disponível globalmente
-      console.log(`✅ ${calendarEvents.length} eventos carregados do servidor`);
-      console.log('📊 calendarEvents após carregamento:', calendarEvents);
+      if (window.DEBUG) {
+        console.log(`✅ ${calendarEvents.length} eventos carregados do servidor`);
+        console.log('📊 calendarEvents após carregamento:', calendarEvents);
+      }
       
       // Log detalhado dos eventos carregados
       if (calendarEvents.length > 0) {
@@ -1188,17 +1253,19 @@ function openCalendarViewModal() {
   modal.classList.add('show');
   
   // Garantir que os eventos estejam carregados antes de renderizar
-  console.log('📅 Abrindo calendário...');
-  console.log(`📊 Eventos disponíveis: ${calendarEvents ? calendarEvents.length : 0}`);
+  if (window.DEBUG) {
+    console.log('📅 Abrindo calendário...');
+    console.log(`📊 Eventos disponíveis: ${calendarEvents ? calendarEvents.length : 0}`);
+  }
   
   if (!calendarEvents || calendarEvents.length === 0) {
-    console.log('🔄 Eventos não carregados, carregando agora...');
+  if (window.DEBUG) console.log('🔄 Eventos não carregados, carregando agora...');
     loadEventsFromServer().then(() => {
-      console.log('✅ Eventos carregados, renderizando calendário...');
+  if (window.DEBUG) console.log('✅ Eventos carregados, renderizando calendário...');
       renderCalendar();
     });
   } else {
-    console.log('✅ Eventos já carregados, renderizando calendário...');
+  if (window.DEBUG) console.log('✅ Eventos já carregados, renderizando calendário...');
     renderCalendar();
   }
 }
@@ -1222,8 +1289,10 @@ function renderCalendar() {
   
   const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   
-  console.log('🔄 Renderizando calendário...');
-  console.log(`📊 Eventos para processar: ${calendarEvents ? calendarEvents.length : 0}`);
+  if (window.DEBUG) {
+    console.log('🔄 Renderizando calendário...');
+    console.log(`📊 Eventos para processar: ${calendarEvents ? calendarEvents.length : 0}`);
+  }
   
   const currentMonth = document.getElementById('currentMonth');
   const calendarDays = document.getElementById('calendarDays');
@@ -1325,7 +1394,7 @@ function renderCalendar() {
       dayElement.title = eventosTexto;
       
       // Debug para dias do mês atual com eventos
-      if (date.getMonth() === currentCalendarDate.getMonth()) {
+      if (window.DEBUG && date.getMonth() === currentCalendarDate.getMonth()) {
         console.log(`📅 Dia ${date.getDate()}: ${eventosNoDia.length} evento(s)${isPastEvent ? ' (PASSADO)' : ''}`);
       }
     }
@@ -1350,7 +1419,7 @@ function renderCalendar() {
     calendarDays.appendChild(dayElement);
   }
   
-  console.log(`✅ Calendário renderizado com ${diasComEventos} dias contendo eventos`);
+  if (window.DEBUG) console.log(`✅ Calendário renderizado com ${diasComEventos} dias contendo eventos`);
   
   // Atualizar o botão de ação se houver data selecionada
   if (selectedDate) {
@@ -2712,67 +2781,10 @@ function getAbsenceTypeName(type) {
 }
 
 // Inicializar verificação de ausencias após carregar a página
-document.addEventListener('DOMContentLoaded', function() {
-  // Adicionar estilos dos indicadores
-  addIndicatorStyles();
-  
-  // Aguardar a tabela ser carregada completamente
-  setTimeout(() => {
-    console.log('🚀 Inicializando sistema de ausencias baseado exclusivamente no calendário...');
-    startAbsenceUpdater();
-  }, 2000);
-  
-  // Verificar se o modal não está aberto por padrão
-  const modal = document.getElementById('compensacaoModal');
-  if (modal && modal.classList.contains('show')) {
-    console.warn('⚠️ Modal estava aberto por padrão - removendo classe show');
-    modal.classList.remove('show');
-  }
-  
-  console.log('✅ Sistema inicializado - modal está fechado por padrão');
-});
+// (Removido) Bloco duplicado de DOMContentLoaded — consolidado acima
 
 // Handlers de ESC e clique-fora consolidados anteriormente
-document.addEventListener('DOMContentLoaded', function() {
-  // Adicionar funções de debug ao window para acesso via console
-  window.verificarDadosCarregados = verificarDadosCarregados;
-  window.carregarDadosAPI = carregarDadosAPI;
-  window.getTabela3Data = getTabela3Data;
-  
-  console.log('🚀 Iniciando aplicação...');
-  
-  // Carregar dados da API (que inclui carregar eventos)
-  carregarDadosAPI().then(() => {
-    console.log('📅 Dados da API carregados, inicializando calendário...');
-    
-    // Garantir que o calendário seja renderizado após carregar os eventos
-    setTimeout(() => {
-      if (typeof renderCalendar === 'function') {
-        console.log('🔄 Renderizando calendário inicial com eventos...');
-        renderCalendar();
-      }
-    }, 200);
-  });
-  
-  // Verificar dados após 3 segundos
-  setTimeout(() => {
-    console.log('🔍 Verificação automática dos dados após carregamento:');
-    verificarDadosCarregados();
-    
-    // Verificar se os eventos estão no calendário
-    if (calendarEvents && calendarEvents.length > 0) {
-      console.log(`✅ ${calendarEvents.length} eventos disponíveis no calendário`);
-    } else {
-      console.warn('⚠️ Nenhum evento encontrado no calendário - verifique se há eventos salvos');
-      console.log('🔄 Tentando recarregar eventos...');
-      
-      // Tentar recarregar eventos
-      loadEventsFromServer().then(eventos => {
-        console.log('📊 Resultado da tentativa de recarga:', eventos ? eventos.length : 'undefined');
-      });
-    }
-  }, 3000);
-});
+// (Removido) Bloco duplicado de DOMContentLoaded — consolidado acima
 
 // Função de debug para testar carregamento de eventos
 window.testLoadEvents = async function() {

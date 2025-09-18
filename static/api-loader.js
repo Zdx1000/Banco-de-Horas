@@ -1,5 +1,45 @@
+// Toggle global de logs de debug (idempotente) — por padrão, desabilita console.log
+(function(){
+  if (typeof window === 'undefined' || typeof console === 'undefined') return;
+  if (window.__logToggleInit) return; // já inicializado por outro arquivo
+  window.__logToggleInit = true;
+
+  try {
+    if (!console.__origLog && typeof console.log === 'function') {
+      console.__origLog = console.log.bind(console);
+    }
+    window.enableDebugLogs = function(){
+      if (console.__origLog) console.log = console.__origLog;
+      console.__silenced = false;
+      window.DEBUG = true;
+    };
+    window.disableDebugLogs = function(){
+      console.log = function(){};
+      console.__silenced = true;
+      window.DEBUG = false;
+    };
+    // desabilita por padrão
+    window.disableDebugLogs();
+  } catch(_) {}
+})();
+
 // Variável global para controle de debounce dos filtros
 let debounceTimer;
+
+// Helper: formata total de horas em string "X dias e Y horas e Z minutos"
+function formatHorasTexto(totalHoras) {
+  const horasPorDia = 7.2;
+  const dias = Math.floor(totalHoras / horasPorDia);
+  const horasRestantes = totalHoras % horasPorDia;
+  const horas = Math.floor(horasRestantes);
+  const minutos = Math.round((horasRestantes - horas) * 60);
+
+  let texto = "";
+  if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
+  if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
+  if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
+  return texto || "0 minuto";
+}
 
 // Função para carregar dados da API
 async function carregarDadosAPI() {
@@ -105,21 +145,10 @@ function atualizarTabela1(topSaldo) {
     row.appendChild(tdCargo);
     
     // Horas Totais (formatado)
-    const tdHoras = document.createElement("td");
-    const totalHoras = topSaldo.SaldoAtual[i];
-    const horasPorDia = 7.2;
-    const dias = Math.floor(totalHoras / horasPorDia);
-    const horasRestantes = totalHoras % horasPorDia;
-    const horas = Math.floor(horasRestantes);
-    const minutos = Math.round((horasRestantes - horas) * 60);
-    
-    let texto = "";
-    if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
-    if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
-    if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
-    
-    tdHoras.innerText = texto || "0 minuto";
-    tdHoras.title = totalHoras + " Hrs";
+  const tdHoras = document.createElement("td");
+  const totalHoras = topSaldo.SaldoAtual[i];
+  tdHoras.innerText = formatHorasTexto(totalHoras);
+  tdHoras.title = totalHoras + " Hrs";
     tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
@@ -191,21 +220,10 @@ function atualizarTabela2(topReceber) {
     row.appendChild(tdCargo);
     
     // Horas Totais a Receber (formatado)
-    const tdHoras = document.createElement("td");
-    const totalHoras = topReceber.Horas_totais_a_receber[i];
-    const horasPorDia = 7.2;
-    const dias = Math.floor(totalHoras / horasPorDia);
-    const horasRestantes = totalHoras % horasPorDia;
-    const horas = Math.floor(horasRestantes);
-    const minutos = Math.round((horasRestantes - horas) * 60);
-    
-    let texto = "";
-    if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
-    if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
-    if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
-    
-    tdHoras.innerText = texto || "0 minuto";
-    tdHoras.title = totalHoras + " Hrs";
+  const tdHoras = document.createElement("td");
+  const totalHoras = topReceber.Horas_totais_a_receber[i];
+  tdHoras.innerText = formatHorasTexto(totalHoras);
+  tdHoras.title = totalHoras + " Hrs";
     tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
@@ -740,10 +758,7 @@ function atualizarTabela3(tabela3Data) {
   };
 }
 
-// Carregar dados da API quando a página estiver pronta
-document.addEventListener('DOMContentLoaded', function() {
-  carregarDadosAPI();
-});
+// (Removido) DOMContentLoaded duplicado — a carga inicial foi consolidada em static/script.js
 
 // Funções auxiliares removidas - agora o servidor gerencia todos os eventos
 // As alterações na tabela são enviadas diretamente para o servidor via updateAbsenceOnServer()

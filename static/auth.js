@@ -1,3 +1,28 @@
+// Toggle global de logs de debug (idempotente) — por padrão, desabilita console.log
+(function(){
+    if (typeof window === 'undefined' || typeof console === 'undefined') return;
+    if (window.__logToggleInit) return; // já inicializado por outro arquivo
+    window.__logToggleInit = true;
+
+    try {
+        if (!console.__origLog && typeof console.log === 'function') {
+            console.__origLog = console.log.bind(console);
+        }
+            window.enableDebugLogs = function(){
+                if (console.__origLog) console.log = console.__origLog;
+                console.__silenced = false;
+                window.DEBUG = true;
+            };
+            window.disableDebugLogs = function(){
+                console.log = function(){};
+                console.__silenced = true;
+                window.DEBUG = false;
+            };
+        // desabilita por padrão
+        window.disableDebugLogs();
+    } catch(_) {}
+})();
+
 // Sistema de Autenticação
 class AuthManager {
     constructor() {
