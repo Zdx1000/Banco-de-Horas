@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual envs
+.env
+.venv/
+venv/
+
+# Build/output
+output/
+dist/
+build/
+Dados/
+instance/
+
+# OS
+.DS_Store
+Thumbs.db
+
+#xlsx
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
