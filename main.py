@@ -110,31 +110,35 @@ def salvar_evento_db(dados_evento):
 ## Motivo: não há mais chamadas no projeto; persistência é feita por evento via POST /eventos
 
 def proximo_mes():
+    """
+    Retorna o rótulo do mês/ano no formato "mmm/AAAA" usado nas colunas do relatório,
+    seguindo a regra:
+    - Do dia 1 ao dia 15: usar o MÊS ATUAL
+    - Após o dia 15: usar o PRÓXIMO MÊS
+
+    Exemplos (considerando 2025):
+    - 10/set → "set/2025"
+    - 18/set → "out/2025"
+    - 05/dez → "dez/2025"
+    - 20/dez → "jan/2026"
+    """
     meses_pt = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
     hoje = datetime.now()
-    
-    # Se o dia for maior que 15, adiciona mais um mês
-    if hoje.day > 15:
-        if hoje.month == 11:  # Se for novembro, vai para janeiro do próximo ano
-            mes_num = 1
-            ano = hoje.year + 1
-        elif hoje.month == 12:  # Se for dezembro, vai para fevereiro do próximo ano
-            mes_num = 2
-            ano = hoje.year + 1
-        else:
-            mes_num = hoje.month + 2
-            ano = hoje.year
+
+    if hoje.day <= 15:
+        # Usar mês atual
+        mes_num = hoje.month
+        ano = hoje.year
     else:
-        # Se o dia for 15 ou menor, considera apenas o próximo mês
+        # Usar próximo mês (com virada de ano para dezembro)
         if hoje.month == 12:
             mes_num = 1
             ano = hoje.year + 1
         else:
             mes_num = hoje.month + 1
             ano = hoje.year
-    
-    mes_proximo = f"{meses_pt[mes_num - 1]}/{ano}"
-    return mes_proximo
+
+    return f"{meses_pt[mes_num - 1]}/{ano}"
 
 def load_data(diretorio="Dados"):
     # Verifica se está rodando como executável PyInstaller
