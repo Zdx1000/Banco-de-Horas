@@ -26,19 +26,37 @@
 // Variável global para controle de debounce dos filtros
 let debounceTimer;
 
-// Helper: formata total de horas em string "X dias e Y horas e Z minutos"
-function formatHorasTexto(totalHoras) {
+// Helper: formata horas de maneira agradável
+function formatHorasTexto(totalHoras, options = { style: 'compact' }) {
   const horasPorDia = 7.2;
   const dias = Math.floor(totalHoras / horasPorDia);
   const horasRestantes = totalHoras % horasPorDia;
   const horas = Math.floor(horasRestantes);
   const minutos = Math.round((horasRestantes - horas) * 60);
 
-  let texto = "";
-  if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
-  if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
-  if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
-  return texto || "0 minuto";
+  const style = options.style || 'compact';
+
+  if (style === 'long') {
+    let texto = "";
+    if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
+    if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
+    if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
+    return texto || "0 minuto";
+  }
+
+  // compact: 2d • 4h • 12m
+  const partes = [];
+  if (dias > 0) partes.push(`${dias}d`);
+  if (horas > 0) partes.push(`${horas}h`);
+  if (minutos > 0) partes.push(`${minutos}m`);
+  const texto = partes.join(' • ');
+  return texto || '0m';
+}
+
+function formatHorasTitulo(totalHoras) {
+  const long = formatHorasTexto(totalHoras, { style: 'long' });
+  const totalFmt = Number(totalHoras || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${long} (total: ${totalFmt} h)`;
 }
 
 // Função para carregar dados da API
@@ -147,8 +165,8 @@ function atualizarTabela1(topSaldo) {
     // Horas Totais (formatado)
   const tdHoras = document.createElement("td");
   const totalHoras = topSaldo.SaldoAtual[i];
-  tdHoras.innerText = formatHorasTexto(totalHoras);
-  tdHoras.title = totalHoras + " Hrs";
+  tdHoras.innerText = formatHorasTexto(totalHoras, { style: 'compact' });
+  tdHoras.title = formatHorasTitulo(totalHoras);
     tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
@@ -222,8 +240,8 @@ function atualizarTabela2(topReceber) {
     // Horas Totais a Receber (formatado)
   const tdHoras = document.createElement("td");
   const totalHoras = topReceber.Horas_totais_a_receber[i];
-  tdHoras.innerText = formatHorasTexto(totalHoras);
-  tdHoras.title = totalHoras + " Hrs";
+  tdHoras.innerText = formatHorasTexto(totalHoras, { style: 'compact' });
+  tdHoras.title = formatHorasTitulo(totalHoras);
     tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
@@ -595,22 +613,11 @@ function atualizarTabela3(tabela3Data) {
           }
           td.innerText = turnoFormatado;
         } else if (key === "Horas_a_receber") {
-          // Formatação de horas em dias/horas/minutos
+          // Formatação de horas com estilo compacto e tooltip detalhado
           if (typeof valor === 'number') {
             const totalHoras = valor;
-            const horasPorDia = 7.2;
-            const dias = Math.floor(totalHoras / horasPorDia);
-            const horasRestantes = totalHoras % horasPorDia;
-            const horas = Math.floor(horasRestantes);
-            const minutos = Math.round((horasRestantes - horas) * 60);
-            
-            let texto = "";
-            if (dias > 0) texto += `${dias} dia${dias > 1 ? 's' : ''}`;
-            if (horas > 0) texto += (texto ? " e " : "") + `${horas} hora${horas > 1 ? 's' : ''}`;
-            if (minutos > 0) texto += (texto ? " e " : "") + `${minutos} minuto${minutos > 1 ? 's' : ''}`;
-            
-            td.innerText = texto || "0 minuto";
-            td.title = totalHoras + " Hrs";
+            td.innerText = formatHorasTexto(totalHoras, { style: 'compact' });
+            td.title = formatHorasTitulo(totalHoras);
           } else {
             td.innerText = valor;
           }

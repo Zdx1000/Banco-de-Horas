@@ -207,27 +207,36 @@ def processar_dados(Relatorio_Saldos):
 
     Relatorio_Saldos["SaldoAtual"] = Relatorio_Saldos["SaldoAtual"].str.replace(':', '.').astype(float)
 
+    # Otimização: pré-agrupar eventos por matrícula para a quinzena atual (exclui 'ferias')
     eventos = carregar_eventos()
-    data_atual = datetime.now().date()
+    hoje = datetime.now().date()
+    primeira_quinzena = hoje.day <= 15
 
-    def contar_eventos_colaborador(matricula):
-        count = 0
-        for evento in eventos:
-            # Ignorar eventos de férias no cálculo de abono
-            if evento.get('absenceType', '').lower() == 'ferias':
+    counts = {}
+    for ev in eventos:
+        try:
+            # Ignorar férias no cálculo
+            if str(ev.get('absenceType', '')).lower() == 'ferias':
                 continue
-                
-            if str(evento.get('employeeId', '')) == str(matricula):
-                try:
-                    data_evento = datetime.fromisoformat(evento.get('date', '')).date()
-                    if (data_atual.day <= 15 and data_evento.day <= 15) or \
-                    (data_atual.day > 15 and data_evento.day > 15):
-                        count += 1
-                except:
-                    continue
-        return count
 
-    Relatorio_Saldos["QTD_EVENTOS"] = Relatorio_Saldos["Matrícula"].apply(contar_eventos_colaborador)
+            mat = str(ev.get('employeeId', ''))
+            if not mat:
+                continue
+
+            data_ev = datetime.fromisoformat(ev.get('date', ''))
+            # Se vier sem hora, ok; se vier com hora (ISO), .date() normaliza
+            data_ev = data_ev.date() if isinstance(data_ev, datetime) else data_ev
+
+            # Mesma quinzena do dia atual
+            if (primeira_quinzena and data_ev.day <= 15) or ((not primeira_quinzena) and data_ev.day > 15):
+                counts[mat] = counts.get(mat, 0) + 1
+        except Exception:
+            # Silenciar registros inválidos para robustez
+            continue
+
+    Relatorio_Saldos["QTD_EVENTOS"] = (
+        Relatorio_Saldos["Matrícula"].astype(str).map(counts).fillna(0).astype(int)
+    )
     Relatorio_Saldos["QTD / DIAS"] = Relatorio_Saldos["QTD_EVENTOS"]
     Relatorio_Saldos["QTD / HORAS"] = Relatorio_Saldos["QTD / DIAS"] * Relatorio_Saldos["C.HORÁRIA"]
 
