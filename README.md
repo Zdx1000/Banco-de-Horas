@@ -66,6 +66,7 @@ python .\main.py
 
 - Calendário: registre ausências (Folga, Atestado, Férias, Falta). O sistema impede mais de um evento por pessoa no mesmo dia e suporta criação em múltiplos dias (até 30) quando aplicável.
 - Relatórios: as tabelas exibem saldos e indicadores por colaborador. A coluna do mês segue a regra 1–15 mês atual; >15 próximo mês.
+- Mês de referência: em "Alimentar Dados" ajuste o mês (jan–dez). A mudança recarrega o dashboard e atualiza todos os cálculos.
 - Exportar: em "Alimentar Dados" escolha "Exportar", selecione período inicial e final, e exporte para Excel os eventos do período.
 
 ## Notas técnicas

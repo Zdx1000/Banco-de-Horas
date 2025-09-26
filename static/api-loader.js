@@ -74,6 +74,13 @@ async function carregarDadosAPI() {
     
     atualizarCards(data.dados_da_pagina);
     atualizarTabelas(data);
+
+    if (data.mes_proximo) {
+      window.currentMesProximo = data.mes_proximo;
+      if (typeof window.syncMesOverrideSelect === 'function') {
+        window.syncMesOverrideSelect();
+      }
+    }
     
     console.log('Dados carregados da API com sucesso');
   } catch (error) {

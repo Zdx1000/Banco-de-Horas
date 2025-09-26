@@ -18,6 +18,38 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///eventos_ausencia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+_mes_override_lock = threading.Lock()
+_mes_override_value = None
+
+
+def selecionar_mes_override(novo_valor):
+    global _mes_override_value
+    with _mes_override_lock:
+        _mes_override_value = novo_valor
+
+
+def obter_mes_override():
+    with _mes_override_lock:
+        return _mes_override_value
+
+
+def calcular_mes_padrao():
+    hoje = datetime.now()
+
+    if hoje.day <= 15:
+        mes_num = hoje.month
+        ano = hoje.year
+    else:
+        if hoje.month == 12:
+            mes_num = 1
+            ano = hoje.year + 1
+        else:
+            mes_num = hoje.month + 1
+            ano = hoje.year
+
+    return f"{MESES_PT[mes_num - 1]}/{ano}"
+
 class EventoAusencia(db.Model):
     __tablename__ = 'eventos_ausencia'
     
@@ -110,35 +142,11 @@ def salvar_evento_db(dados_evento):
 ## Motivo: não há mais chamadas no projeto; persistência é feita por evento via POST /eventos
 
 def proximo_mes():
-    """
-    Retorna o rótulo do mês/ano no formato "mmm/AAAA" usado nas colunas do relatório,
-    seguindo a regra:
-    - Do dia 1 ao dia 15: usar o MÊS ATUAL
-    - Após o dia 15: usar o PRÓXIMO MÊS
-
-    Exemplos (considerando 2025):
-    - 10/set → "set/2025"
-    - 18/set → "out/2025"
-    - 05/dez → "dez/2025"
-    - 20/dez → "jan/2026"
-    """
-    meses_pt = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
-    hoje = datetime.now()
-
-    if hoje.day <= 15:
-        # Usar mês atual
-        mes_num = hoje.month
-        ano = hoje.year
-    else:
-        # Usar próximo mês (com virada de ano para dezembro)
-        if hoje.month == 12:
-            mes_num = 1
-            ano = hoje.year + 1
-        else:
-            mes_num = hoje.month + 1
-            ano = hoje.year
-
-    return f"{meses_pt[mes_num - 1]}/{ano}"
+    """Retorna o rótulo do mês/ano no formato "mmm/AAAA" considerando override do usuário."""
+    override = obter_mes_override()
+    if override:
+        return override
+    return calcular_mes_padrao()
 
 def load_data(diretorio="Dados"):
     # Verifica se está rodando como executável PyInstaller
@@ -178,6 +186,9 @@ def processar_dados(Relatorio_Saldos):
     Relatorio_Saldos['Turno'] = Relatorio_Saldos['Departamento'].str.extract(r'(\dTURNO)')
     # Tratar valores NaN na coluna Turno
     Relatorio_Saldos['Turno'] = Relatorio_Saldos['Turno'].fillna('')
+
+    if mes_proximo not in Relatorio_Saldos.columns:
+        Relatorio_Saldos[mes_proximo] = 0
 
     lista_colunas = ["Turno", "Matrícula","Colaborador", "Cargo", "SaldoAtual", mes_proximo]
     Relatorio_Saldos = Relatorio_Saldos[lista_colunas]
@@ -239,8 +250,12 @@ def processar_dados(Relatorio_Saldos):
     Relatorio_Saldos["QTD / DIAS"] = Relatorio_Saldos["QTD_EVENTOS"]
     Relatorio_Saldos["QTD / HORAS"] = Relatorio_Saldos["QTD / DIAS"] * Relatorio_Saldos["C.HORÁRIA"]
 
-    Relatorio_Saldos["SALARIO ABONADO"] = (((Relatorio_Saldos["Salario"] / 220) * 0.9) + (Relatorio_Saldos["Salario"] / 220)) * (Relatorio_Saldos["QTD / DIAS"] * 7.2)
-    Relatorio_Saldos["SALARIO A RECEBER"] = ((Relatorio_Saldos["Salario"] / 220) * 0.9) + (Relatorio_Saldos["Salario"] / 220) * (Relatorio_Saldos["DIAS P/ COMPENSAR"] * 7.2) - Relatorio_Saldos["SALARIO ABONADO"]
+    valor_hora_com_bonus = ((Relatorio_Saldos["Salario"] / 220) * 0.9) + (Relatorio_Saldos["Salario"] / 220)
+    horas_compensadas = Relatorio_Saldos["QTD / DIAS"] * Relatorio_Saldos["C.HORÁRIA"]
+    horas_a_receber = Relatorio_Saldos["DIAS P/ COMPENSAR"] * Relatorio_Saldos["C.HORÁRIA"]
+
+    Relatorio_Saldos["SALARIO ABONADO"] = valor_hora_com_bonus * horas_compensadas
+    Relatorio_Saldos["SALARIO A RECEBER"] = (valor_hora_com_bonus * horas_a_receber) - Relatorio_Saldos["SALARIO ABONADO"]
     Relatorio_Saldos["SALARIO A RECEBER"] = Relatorio_Saldos["SALARIO A RECEBER"].round(2).astype(float)
 
     Relatorio_Saldos = Relatorio_Saldos.rename(columns={
@@ -364,6 +379,50 @@ def tabelas():
         'data_atual': data_hoje,
         'total_ausentes': len(ausencias_hoje)
     })
+
+
+@app.route('/config/mes', methods=['POST'])
+@requires_auth
+def configurar_mes_referencia():
+    """Atualiza ou reseta o mês de referência utilizado em proximo_mes."""
+    try:
+        dados = request.get_json(silent=True) or {}
+        valor_mes = dados.get('mes')
+
+        if valor_mes:
+            if not isinstance(valor_mes, str):
+                return jsonify({'erro': 'Valor de mês inválido'}), 400
+
+            partes = valor_mes.split('/')
+            if len(partes) != 2:
+                return jsonify({'erro': 'Formato esperado: mmm/AAAA'}), 400
+
+            mes_part = partes[0].strip().lower()
+            ano_part = partes[1].strip()
+
+            if mes_part not in MESES_PT:
+                return jsonify({'erro': 'Mês inválido'}), 400
+
+            try:
+                ano_int = int(ano_part)
+                if ano_int < 1900 or ano_int > 9999:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return jsonify({'erro': 'Ano inválido'}), 400
+
+            valor_normalizado = f"{mes_part}/{ano_int}"
+            selecionar_mes_override(valor_normalizado)
+
+            return jsonify({'sucesso': True, 'mes': valor_normalizado, 'override': True})
+
+        # Resetar para cálculo automático
+        selecionar_mes_override(None)
+        mes_atual = proximo_mes()
+        return jsonify({'sucesso': True, 'mes': mes_atual, 'override': False})
+
+    except Exception as e:
+        print(f"Erro ao configurar mês de referência: {e}")
+        return jsonify({'erro': 'Erro interno ao atualizar mês'}), 500
 
 @app.route('/eventos', methods=['GET'])
 @requires_auth

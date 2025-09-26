@@ -31,6 +31,127 @@ let currentCalendarDate = new Date();
 let selectedDate = null;
 let calendarEvents = []; // Agora será carregado do servidor
 
+const MESES_REFERENCIA = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+let mesOverrideRequestInProgress = false;
+
+function obterMesAtualAbreviado() {
+  if (typeof window.currentMesProximo !== 'string') return null;
+  const partes = window.currentMesProximo.split('/');
+  if (!partes.length) return null;
+  const mes = partes[0]?.trim().toLowerCase();
+  return MESES_REFERENCIA.includes(mes) ? mes : null;
+}
+
+function obterAnoReferenciaAtual() {
+  if (typeof window.currentMesProximo === 'string') {
+    const partes = window.currentMesProximo.split('/');
+    if (partes.length >= 2) {
+      const ano = partes[1].trim();
+      if (/^\d{4}$/.test(ano)) {
+        return ano;
+      }
+    }
+  }
+  return String(new Date().getFullYear());
+}
+
+function syncMesOverrideSelect() {
+  const select = document.getElementById('mesOverrideSelect');
+  if (!select) return;
+
+  if (!select.dataset.initialized) {
+    select.innerHTML = '';
+    MESES_REFERENCIA.forEach(mes => {
+      const option = document.createElement('option');
+      option.value = mes;
+      option.textContent = mes.toUpperCase();
+      select.appendChild(option);
+    });
+    select.dataset.initialized = 'true';
+    select.addEventListener('change', handleMesOverrideChange);
+  }
+
+  const mesAtual = obterMesAtualAbreviado();
+  if (mesAtual) {
+    select.value = mesAtual;
+    select.dataset.selectedValue = mesAtual;
+    select.disabled = false;
+  } else {
+    const fallback = MESES_REFERENCIA[new Date().getMonth()];
+    select.value = fallback;
+    select.disabled = true;
+  }
+
+  const hint = document.getElementById('mesOverrideHint');
+  if (hint) {
+    if (typeof window.currentMesProximo === 'string') {
+      hint.textContent = `Mês atual: ${window.currentMesProximo.toUpperCase()} • Alterar recarrega o dashboard.`;
+    } else {
+      hint.textContent = 'Carregando mês atual...';
+    }
+  }
+}
+
+async function handleMesOverrideChange(event) {
+  if (mesOverrideRequestInProgress) {
+    event.preventDefault();
+    return;
+  }
+
+  const select = event.target;
+  const novoMes = (select.value || '').toLowerCase();
+  const mesAtual = obterMesAtualAbreviado();
+
+  if (!novoMes || novoMes === mesAtual) {
+    if (mesAtual) select.value = mesAtual;
+    return;
+  }
+
+  const anoReferencia = obterAnoReferenciaAtual();
+  const payload = { mes: `${novoMes}/${anoReferencia}` };
+  const valorAnterior = mesAtual || select.dataset.selectedValue || novoMes;
+
+  try {
+    mesOverrideRequestInProgress = true;
+    select.disabled = true;
+    select.classList.add('loading');
+
+    const response = await fetch('/config/mes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    });
+
+    let resultado = {};
+    try {
+      resultado = await response.json();
+    } catch (_) {
+      resultado = {};
+    }
+
+    const sucesso = resultado && resultado.sucesso;
+    if (!response.ok || !sucesso) {
+      const mensagem = (resultado && resultado.erro) || `Falha ao atualizar mês (status ${response.status})`;
+      throw new Error(mensagem);
+    }
+
+    window.currentMesProximo = resultado.mes;
+    select.dataset.selectedValue = novoMes;
+    location.reload();
+  } catch (error) {
+    console.error('Erro ao atualizar mês de referência:', error);
+    alert('Não foi possível atualizar o mês. Tente novamente.');
+    select.value = mesAtual || valorAnterior;
+  } finally {
+    mesOverrideRequestInProgress = false;
+    select.disabled = false;
+    select.classList.remove('loading');
+  }
+}
+
+window.syncMesOverrideSelect = syncMesOverrideSelect;
+
 // Função para carregar dados da API
 async function carregarDadosAPI() {
   try {
@@ -48,6 +169,11 @@ async function carregarDadosAPI() {
     const data = await response.json();
     console.log('📋 Dados completos da API:', data);
     console.log('📊 Estrutura da resposta:', Object.keys(data));
+
+    if (data.mes_proximo) {
+      window.currentMesProximo = data.mes_proximo;
+      syncMesOverrideSelect();
+    }
     
     // Verificar se tabela_3 existe na resposta
     if (data.tabela_3) {
@@ -1129,11 +1255,14 @@ document.addEventListener('DOMContentLoaded', function() {
       getEmployeesFromData();
     }
   }, 1000);
+
+  syncMesOverrideSelect();
 });
 
 // Funções para o Modal de Opções do Calendário
 function openCalendarModal() {
   const modal = document.getElementById('calendarOptionsModal');
+  syncMesOverrideSelect();
   modal.style.display = ''; // Remover style inline
   modal.classList.add('show');
 }
