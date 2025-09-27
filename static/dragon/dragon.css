@@ -1,10 +1,44 @@
-body,
-html {
-	position: absolute;
+html,
+body {
 	margin: 0;
 	padding: 0;
 	width: 100%;
 	height: 100%;
+	min-height: 100%;
+}
+
+body {
+	position: relative;
+	background: linear-gradient(150deg, #ffffff 0%, #f7f9fc 55%, #e5ebf3 100%);
+	overflow-x: hidden;
+	color: inherit;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 18px;
+	border-radius: 42px;
+	background: linear-gradient(165deg, rgba(255, 255, 255, 0.95), rgba(236, 240, 245, 0.88));
+	border: 1px solid rgba(148, 163, 184, 0.35);
+	box-shadow:
+		0 34px 55px rgba(148, 163, 184, 0.22),
+		0 18px 30px rgba(148, 163, 184, 0.14),
+		inset 0 1px 0 rgba(255, 255, 255, 0.65);
+	pointer-events: none;
+	z-index: -3;
+}
+
+body::after {
+	content: "";
+	position: fixed;
+	inset: 24px;
+	border-radius: 36px;
+	background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.45), transparent 55%),
+		linear-gradient(140deg, rgba(255, 255, 255, 0.35), rgba(226, 232, 240, 0.15));
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+	pointer-events: none;
+	z-index: -2;
 }
 
 svg {
@@ -15,5 +49,35 @@ svg {
 	height: 100%;
 	z-index: -1;
 	pointer-events: none;
-	filter: sepia(20%);
+	filter: saturate(90%) brightness(1.08) contrast(1.05);
+}
+
+body.dragon-overlay::before {
+	opacity: 0.25;
+}
+
+body.dragon-overlay::after {
+	opacity: 0.55;
+}
+
+body.dragon-overlay svg {
+	z-index: 9999;
+	filter: saturate(120%) brightness(1.05) contrast(1.08) drop-shadow(0 18px 30px rgba(99, 102, 241, 0.18));
+}
+
+body.dragon-rage::before {
+	border-color: rgba(239, 68, 68, 0.32);
+	box-shadow:
+		0 38px 62px rgba(239, 68, 68, 0.32),
+		0 16px 28px rgba(239, 68, 68, 0.22),
+		inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+body.dragon-rage::after {
+	background: radial-gradient(circle at 18% 18%, rgba(254, 226, 226, 0.5), transparent 60%),
+		linear-gradient(140deg, rgba(254, 202, 202, 0.35), rgba(254, 226, 226, 0.18));
+}
+
+body.dragon-rage svg {
+	filter: saturate(160%) brightness(1.1) contrast(1.15) drop-shadow(0 24px 32px rgba(220, 38, 38, 0.32));
 }

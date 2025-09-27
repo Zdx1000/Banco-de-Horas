@@ -115,6 +115,14 @@
             </div>
           </div>
           <div class="header-actions">
+            <button class="dragon-toggle" id="dragonToggleBtn" type="button" aria-pressed="false" aria-label="Trazer o dragão para frente">
+              <span class="dragon-toggle-icon" aria-hidden="true">🐉</span>
+              <span class="dragon-toggle-copy">
+                <span class="dragon-toggle-title">Modo Dragão</span>
+                <span class="dragon-toggle-state" id="dragonToggleState">Fundo</span>
+              </span>
+              <span class="dragon-toggle-switch" aria-hidden="true"></span>
+            </button>
             <button class="chart-btn refresh-btn" id="refreshBtn" onclick="refreshAllData()">
               <span class="button-icon">
                 <svg class="chart-icon" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

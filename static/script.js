@@ -30,6 +30,53 @@ let tabela3Data = null;
 let currentCalendarDate = new Date();
 let selectedDate = null;
 let calendarEvents = []; // Agora será carregado do servidor
+let dragonOverlayEnabled = false;
+let dragonCurrentTarget = null;
+let dragonTargetClearTimeout = null;
+
+const DRAGON_TARGET_BLACKLIST = new Set(['HTML', 'BODY', 'SVG', 'USE']);
+
+function isDragonTargetEligible(node) {
+  if (!node || DRAGON_TARGET_BLACKLIST.has(node.tagName)) return false;
+  if (node.closest && node.closest('svg')) return false;
+  return true;
+}
+
+function clearDragonTarget(immediate = false) {
+  if (dragonTargetClearTimeout) {
+    clearTimeout(dragonTargetClearTimeout);
+    dragonTargetClearTimeout = null;
+  }
+  const remove = () => {
+    if (dragonCurrentTarget) {
+      dragonCurrentTarget.classList.remove('dragon-scan-target');
+      dragonCurrentTarget = null;
+    }
+  };
+  if (immediate) remove();
+  else dragonTargetClearTimeout = setTimeout(remove, 140);
+}
+
+function highlightDragonTarget(clientX, clientY) {
+  if (!dragonOverlayEnabled) {
+    clearDragonTarget(true);
+    return;
+  }
+
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!isDragonTargetEligible(target)) {
+    clearDragonTarget();
+    return;
+  }
+
+  if (target !== dragonCurrentTarget) {
+    if (dragonCurrentTarget) {
+      dragonCurrentTarget.classList.remove('dragon-scan-target');
+    }
+    dragonCurrentTarget = target;
+    dragonCurrentTarget.classList.add('dragon-scan-target');
+  }
+}
 
 const MESES_REFERENCIA = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 let mesOverrideRequestInProgress = false;
@@ -148,6 +195,36 @@ async function handleMesOverrideChange(event) {
     select.disabled = false;
     select.classList.remove('loading');
   }
+}
+
+function setDragonOverlayState(enabled) {
+  dragonOverlayEnabled = !!enabled;
+  const body = document.body;
+  if (body) {
+    body.classList.toggle('dragon-overlay', dragonOverlayEnabled);
+  }
+
+  window.isDragonOverlayActive = () => dragonOverlayEnabled;
+
+  const toggleBtn = document.getElementById('dragonToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-pressed', String(dragonOverlayEnabled));
+    toggleBtn.classList.toggle('is-active', dragonOverlayEnabled);
+  }
+
+  const stateLabel = document.getElementById('dragonToggleState');
+  if (stateLabel) {
+    stateLabel.textContent = dragonOverlayEnabled ? 'Destaque' : 'Fundo';
+  }
+
+  if (!dragonOverlayEnabled) {
+    clearDragonTarget(true);
+  }
+}
+
+function toggleDragonOverlay(forceState) {
+  const desired = typeof forceState === 'boolean' ? forceState : !dragonOverlayEnabled;
+  setDragonOverlayState(desired);
 }
 
 window.syncMesOverrideSelect = syncMesOverrideSelect;
@@ -1409,6 +1486,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1000);
 
   syncMesOverrideSelect();
+
+  const dragonToggleBtn = document.getElementById('dragonToggleBtn');
+  if (dragonToggleBtn) {
+    dragonToggleBtn.addEventListener('click', () => toggleDragonOverlay());
+    setDragonOverlayState(false);
+  }
+});
+
+document.addEventListener('pointermove', event => {
+  if (!dragonOverlayEnabled) return;
+  highlightDragonTarget(event.clientX, event.clientY);
+}, { passive: true });
+
+document.addEventListener('pointerdown', event => {
+  if (!dragonOverlayEnabled) return;
+  highlightDragonTarget(event.clientX, event.clientY);
+  window.dispatchEvent(new CustomEvent('dragon:click', {
+    detail: { x: event.clientX, y: event.clientY }
+  }));
+}, { passive: true });
+
+window.addEventListener('blur', () => clearDragonTarget(true));
+
+document.addEventListener('pointerleave', event => {
+  if (event.target === document.documentElement) {
+    clearDragonTarget();
+  }
 });
 
 // Funções para o Modal de Opções do Calendário

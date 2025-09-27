@@ -143,12 +143,22 @@ header::after {
 .header-actions {
     position: relative;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
     gap: 18px;
-    align-items: stretch;
-    justify-content: center;
+    flex-wrap: wrap;
     min-width: 240px;
     z-index: 1;
+}
+
+.header-actions .dragon-toggle {
+    flex: 0 0 auto;
+}
+
+.header-actions .chart-btn {
+    width: auto;
+    flex: 0 1 220px;
 }
 
 .chart-btn {
@@ -367,6 +377,143 @@ header::after {
     pointer-events: none;
 }
 
+.dragon-toggle {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.85));
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+    color: #0f172a;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.dragon-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 38px rgba(15, 23, 42, 0.16);
+}
+
+.dragon-toggle:active {
+    transform: translateY(0);
+    box-shadow: 0 14px 24px rgba(15, 23, 42, 0.12);
+}
+
+.dragon-toggle:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.35);
+    outline-offset: 4px;
+}
+
+.dragon-toggle-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.02));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 10px 20px rgba(15, 23, 42, 0.08);
+    transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dragon-toggle-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+}
+
+.dragon-toggle-title {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(15, 23, 42, 0.58);
+}
+
+.dragon-toggle-state {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #0f172a;
+    transition: color 0.3s ease;
+}
+
+.dragon-toggle-switch {
+    width: 46px;
+    height: 24px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: linear-gradient(145deg, rgba(226, 232, 240, 0.6), rgba(203, 213, 225, 0.4));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 6px rgba(15, 23, 42, 0.08);
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.dragon-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #ffffff, rgba(226, 232, 240, 0.9));
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.dragon-toggle.is-active {
+    border-color: rgba(99, 102, 241, 0.45);
+    background: linear-gradient(145deg, rgba(129, 140, 248, 0.18), rgba(99, 102, 241, 0.12));
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dragon-toggle.is-active .dragon-toggle-icon {
+    background: linear-gradient(145deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.1));
+    color: #4338ca;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 12px 22px rgba(99, 102, 241, 0.24);
+}
+
+.dragon-toggle.is-active .dragon-toggle-state {
+    color: #4338ca;
+}
+
+.dragon-toggle.is-active .dragon-toggle-switch {
+    background: linear-gradient(145deg, rgba(129, 140, 248, 0.28), rgba(99, 102, 241, 0.18));
+    border-color: rgba(99, 102, 241, 0.45);
+}
+
+.dragon-toggle.is-active .dragon-toggle-switch::after {
+    transform: translateX(22px);
+    background: linear-gradient(145deg, rgba(99, 102, 241, 0.95), rgba(129, 140, 248, 0.8));
+    box-shadow: 0 10px 22px rgba(99, 102, 241, 0.28);
+}
+
+.dragon-scan-target {
+    transition: box-shadow 0.22s ease, transform 0.22s ease, outline 0.22s ease;
+    position: relative;
+}
+
+body.dragon-overlay .dragon-scan-target {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28), 0 18px 36px rgba(99, 102, 241, 0.18);
+    outline: 2px solid rgba(129, 140, 248, 0.45);
+    outline-offset: 2px;
+    transform: translateZ(0) scale(1.01);
+}
+
+body.dragon-rage .dragon-scan-target {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4), 0 24px 44px rgba(239, 68, 68, 0.28);
+    outline-color: rgba(239, 68, 68, 0.55);
+    transform: translateZ(0) scale(1.02) rotate(-0.3deg);
+}
+
 @keyframes animateHeader {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -389,7 +536,6 @@ header::after {
     }
 
     .header-actions {
-        flex-direction: row;
         justify-content: center;
         gap: 14px;
         min-width: unset;
@@ -410,6 +556,11 @@ header::after {
     .chart-btn {
         padding: 14px 16px;
         gap: 14px;
+    }
+
+    .header-actions .chart-btn {
+        width: 100%;
+        flex: 1 1 auto;
     }
 
     .button-icon {
