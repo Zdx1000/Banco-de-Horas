@@ -376,82 +376,117 @@
       </div>
       <div class="modal-body">
         <div class="event-form">
-          <div class="form-group">
-            <label for="eventDate">Data:</label>
-            <input type="text" id="eventDate" readonly class="form-input">
-          </div>
-          
-          <div class="form-group">
-            <label for="employeeSelect">Matrícula do Colaborador:</label>
-            <div class="employee-input-container">
-              <input type="text" id="employeeInput" class="form-input" placeholder="Digite a matrícula ou nome do colaborador..." list="employeeList">
-              <datalist id="employeeList">
-                <!-- As opções serão preenchidas via JavaScript -->
-              </datalist>
-              <button type="button" id="toggleEmployeeSelect" class="toggle-btn">📋</button>
+          <section class="event-card event-card--primary">
+            <header class="event-card-header">
+              <span class="event-card-icon">🗂️</span>
+              <div class="event-card-title">
+                <h3>Dados principais</h3>
+                <p>Selecione a data e o colaborador responsável</p>
+              </div>
+            </header>
+            <div class="event-card-body">
+              <div class="form-group">
+                <label for="eventDate">Data</label>
+                <input type="text" id="eventDate" readonly class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="employeeSelect">Matrícula do colaborador</label>
+                <div class="employee-input-container">
+                  <input type="text" id="employeeInput" class="form-input" placeholder="Digite a matrícula ou nome do colaborador..." list="employeeList">
+                  <datalist id="employeeList">
+                    <!-- As opções serão preenchidas via JavaScript -->
+                  </datalist>
+                  <button type="button" id="toggleEmployeeSelect" class="toggle-btn" aria-label="Alternar lista de colaboradores">📋</button>
+                </div>
+                <select id="employeeSelect" class="form-select" style="display: none;">
+                  <option value="">Selecione um colaborador...</option>
+                  <!-- As opções serão preenchidas via JavaScript -->
+                </select>
+              </div>
             </div>
-            <select id="employeeSelect" class="form-select" style="display: none;">
-              <option value="">Selecione um colaborador...</option>
-              <!-- As opções serão preenchidas via JavaScript -->
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="absenceType">Tipo de Ausência:</label>
-            <select id="absenceType" class="form-select">
-              <option value="">Selecione o tipo...</option>
-              <option value="folga">🏖️ Folga</option>
-              <option value="ferias">✈️ Férias</option>
-              <option value="atestado">🏥 Atestado</option>
-              <option value="falta">❌ Falta</option>
-            </select>
-          </div>
-          
-          <div class="form-group" id="feriassDurationGroup" style="display: none;">
-            <label for="feriassDuration">Duração das Férias:</label>
-            <select id="feriassDuration" class="form-select">
-              <option value="1">1 dia</option>
-              <option value="20">20 dias</option>
-              <option value="30">30 dias</option>
-            </select>
-          </div>
-          
-          <div class="form-group" id="atestadoDurationGroup" style="display: none;">
-            <label for="atestadoDuration">Duração do Atestado:</label>
-            <select id="atestadoDuration" class="form-select">
-              <option value="1">1 dia</option>
-              <option value="2">2 dias</option>
-              <option value="3">3 dias</option>
-              <option value="4">4 dias</option>
-              <option value="5">5 dias</option>
-              <option value="7">7 dias</option>
-              <option value="10">10 dias</option>
-              <option value="15">15 dias</option>
-              <option value="20">20 dias</option>
-              <option value="30">30 dias</option>
-            </select>
-          </div>
-          
-          <div class="form-group" id="folgaDurationGroup" style="display: none;">
-            <label for="folgaDuration">Duração da Folga:</label>
-            <select id="folgaDuration" class="form-select">
-              <option value="1">1 dia</option>
-              <option value="2">2 dias</option>
-              <option value="3">3 dias</option>
-              <option value="4">4 dias</option>
-              <option value="5">5 dias</option>
-              <option value="7">7 dias</option>
-              <option value="10">10 dias</option>
-              <option value="15">15 dias</option>
-              <option value="20">20 dias</option>
-              <option value="30">30 dias</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="eventNotes">Observações (opcional):</label>
-            <textarea id="eventNotes" class="form-textarea" placeholder="Adicione observações sobre o evento..."></textarea>
-          </div>
+          </section>
+
+          <section class="event-card event-card--type">
+            <header class="event-card-header">
+              <span class="event-card-icon">🧭</span>
+              <div class="event-card-title">
+                <h3>Tipo de ausência</h3>
+                <p>Defina a categoria e a duração correspondente</p>
+              </div>
+            </header>
+            <div class="event-card-body">
+              <div class="form-group">
+                <label for="absenceType">Tipo de ausência</label>
+                <select id="absenceType" class="form-select">
+                  <option value="">Selecione o tipo...</option>
+                  <option value="folga">🏖️ Folga</option>
+                  <option value="ferias">✈️ Férias</option>
+                  <option value="atestado">🏥 Atestado</option>
+                  <option value="falta">❌ Falta</option>
+                </select>
+              </div>
+
+              <div class="event-duration-groups">
+                <div class="form-group duration-card" id="feriassDurationGroup" style="display: none;">
+                  <label for="feriassDuration">Duração das férias</label>
+                  <select id="feriassDuration" class="form-select">
+                    <option value="1">1 dia</option>
+                    <option value="20">20 dias</option>
+                    <option value="30">30 dias</option>
+                  </select>
+                </div>
+
+                <div class="form-group duration-card" id="atestadoDurationGroup" style="display: none;">
+                  <label for="atestadoDuration">Duração do atestado</label>
+                  <select id="atestadoDuration" class="form-select">
+                    <option value="1">1 dia</option>
+                    <option value="2">2 dias</option>
+                    <option value="3">3 dias</option>
+                    <option value="4">4 dias</option>
+                    <option value="5">5 dias</option>
+                    <option value="7">7 dias</option>
+                    <option value="10">10 dias</option>
+                    <option value="15">15 dias</option>
+                    <option value="20">20 dias</option>
+                    <option value="30">30 dias</option>
+                  </select>
+                </div>
+
+                <div class="form-group duration-card" id="folgaDurationGroup" style="display: none;">
+                  <label for="folgaDuration">Duração da folga</label>
+                  <select id="folgaDuration" class="form-select">
+                    <option value="1">1 dia</option>
+                    <option value="2">2 dias</option>
+                    <option value="3">3 dias</option>
+                    <option value="4">4 dias</option>
+                    <option value="5">5 dias</option>
+                    <option value="7">7 dias</option>
+                    <option value="10">10 dias</option>
+                    <option value="15">15 dias</option>
+                    <option value="20">20 dias</option>
+                    <option value="30">30 dias</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="event-card event-card--notes">
+            <header class="event-card-header">
+              <span class="event-card-icon">📝</span>
+              <div class="event-card-title">
+                <h3>Observações adicionais</h3>
+                <p>Registre detalhes relevantes para o acompanhamento</p>
+              </div>
+            </header>
+            <div class="event-card-body">
+              <div class="form-group">
+                <label for="eventNotes">Observações (opcional)</label>
+                <textarea id="eventNotes" class="form-textarea" placeholder="Adicione observações sobre o evento..."></textarea>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
       <div class="modal-footer">

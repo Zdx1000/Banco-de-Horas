@@ -1835,12 +1835,6 @@ function showEventsForSelectedDate() {
   const eventsOnSelectedDate = calendarEvents.filter(event => 
     event.date === selectedDateString
   );
-  
-  if (eventsOnSelectedDate.length === 0) {
-    alert('Nenhum evento encontrado para esta data.');
-    return;
-  }
-  
   openEventsViewModal(eventsOnSelectedDate, selectedDate);
 }
 
@@ -1859,46 +1853,169 @@ function openEventsViewModal(events, date) {
     day: 'numeric' 
   });
   
-  document.getElementById('eventsViewTitle').textContent = `Eventos em ${dateFormatted}`;
-  
-  const eventsList = document.getElementById('eventsViewList');
-  eventsList.innerHTML = '';
-  
-  events.forEach(event => {
-    const eventItem = document.createElement('div');
-    eventItem.className = 'event-item';
-    
-    const absenceTypeMap = {
-      'folga': { name: 'Folga', color: '#48bb78', icon: '🏠' },
-      'ferias': { name: 'Férias', color: '#ed8936', icon: '🏖️' },
-      'atestado': { name: 'Atestado', color: '#667eea', icon: '🏥' },
-      'falta': { name: 'Falta', color: '#e53e3e', icon: '❌' }
-    };
-    
-    const typeInfo = absenceTypeMap[event.absenceType] || { name: event.absenceType, color: '#718096', icon: '📋' };
-    
-    eventItem.innerHTML = `
-      <div class="event-header" style="background: ${typeInfo.color};">
-        <span class="event-icon">${typeInfo.icon}</span>
-        <span class="event-type">${typeInfo.name}</span>
-        <button class="event-delete-btn" onclick="deleteEventFromView('${event.id}')" title="Excluir evento">🗑️</button>
-      </div>
-      <div class="event-content">
-        <div class="event-employee">
-          <strong>Colaborador:</strong> ${event.employeeName}
-        </div>
-        <div class="event-id">
-          <strong>ID:</strong> ${event.employeeId}
-        </div>
-        ${event.notes ? `<div class="event-notes"><strong>Observações:</strong> ${event.notes}</div>` : ''}
-        <div class="event-meta">
-          <small>Criado em: ${new Date(event.createdAt).toLocaleString('pt-BR')}</small>
-        </div>
-      </div>
-    `;
-    
-    eventsList.appendChild(eventItem);
+  const titleEl = document.getElementById('eventsViewTitle');
+  const dateLabelEl = document.getElementById('eventsViewDateLabel');
+  const metaEl = document.getElementById('eventsViewMeta');
+  const statsContainer = document.getElementById('eventsViewStats');
+  const eventsCollection = document.getElementById('eventsViewCollection');
+  const emptyStateEl = document.getElementById('eventsViewEmpty');
+
+  if (titleEl) {
+    titleEl.textContent = '📅 Eventos do Dia';
+  }
+
+  const formattedDateCapitalized = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+  if (dateLabelEl) {
+    dateLabelEl.textContent = formattedDateCapitalized;
+  }
+
+  const totalEvents = events.length;
+  if (metaEl) {
+    metaEl.textContent = totalEvents === 1
+      ? '1 evento cadastrado para esta data'
+      : `${totalEvents} eventos cadastrados para esta data`;
+  }
+
+  const absenceTypeMap = {
+    folga:    { name: 'Folga',    plural: 'Folgas',    icon: '🌿', color: '#10b981' },
+    ferias:   { name: 'Férias',   plural: 'Férias',    icon: '🏖️', color: '#f59e0b' },
+    atestado: { name: 'Atestado', plural: 'Atestados', icon: '🏥', color: '#6366f1' },
+    falta:    { name: 'Falta',    plural: 'Faltas',    icon: '⛔', color: '#ef4444' },
+    default:  { name: 'Evento',   plural: 'Eventos',   icon: '🗂️', color: '#64748b' }
+  };
+
+  const typeCounts = events.reduce((acc, event) => {
+    const typeKey = event.absenceType && absenceTypeMap[event.absenceType] ? event.absenceType : 'default';
+    acc[typeKey] = (acc[typeKey] || 0) + 1;
+    return acc;
+  }, {});
+
+  if (statsContainer) {
+    statsContainer.innerHTML = '';
+    Object.entries(typeCounts).forEach(([typeKey, count]) => {
+      const info = absenceTypeMap[typeKey] || absenceTypeMap.default;
+      const chip = document.createElement('span');
+      chip.className = `events-view-chip events-view-chip--${typeKey}`;
+      chip.textContent = `${info.icon} ${count} ${count === 1 ? info.name : info.plural}`;
+      statsContainer.appendChild(chip);
+    });
+  }
+
+  if (!eventsCollection) {
+    return;
+  }
+
+  eventsCollection.innerHTML = '';
+
+  const eventsSorted = [...events].sort((a, b) => {
+    const nameA = (a.employeeName || '').toLocaleLowerCase('pt-BR');
+    const nameB = (b.employeeName || '').toLocaleLowerCase('pt-BR');
+    return nameA.localeCompare(nameB);
   });
+
+  const formatDateTime = (value) => {
+    if (!value) return '—';
+    const dateValue = new Date(value);
+    if (Number.isNaN(dateValue.getTime())) return '—';
+    return dateValue.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const createMetaItem = (label, value) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'event-view-card__meta-item';
+    const labelEl = document.createElement('span');
+    labelEl.className = 'event-view-card__meta-label';
+    labelEl.textContent = label;
+    const valueEl = document.createElement('span');
+    valueEl.className = 'event-view-card__meta-value';
+    valueEl.textContent = value || '—';
+    wrapper.appendChild(labelEl);
+    wrapper.appendChild(valueEl);
+    return wrapper;
+  };
+
+  eventsSorted.forEach(event => {
+    const typeKey = event.absenceType && absenceTypeMap[event.absenceType] ? event.absenceType : 'default';
+    const typeInfo = absenceTypeMap[typeKey];
+
+    const card = document.createElement('article');
+    card.className = `event-view-card event-view-card--${typeKey}`;
+    card.style.setProperty('--accent-color', typeInfo.color);
+
+    const header = document.createElement('header');
+    header.className = 'event-view-card__header';
+
+    const icon = document.createElement('span');
+    icon.className = 'event-view-card__icon';
+    icon.textContent = typeInfo.icon;
+
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'event-view-card__title';
+
+    const title = document.createElement('h3');
+    title.textContent = typeInfo.name;
+
+    const subtitle = document.createElement('p');
+    subtitle.textContent = event.employeeName || 'Colaborador não informado';
+
+    titleGroup.appendChild(title);
+    titleGroup.appendChild(subtitle);
+
+    const actions = document.createElement('div');
+    actions.className = 'event-view-card__actions';
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'event-view-card__action event-view-card__action--danger';
+    deleteButton.setAttribute('aria-label', `Excluir evento de ${event.employeeName || 'colaborador'}`);
+    deleteButton.textContent = '🗑️';
+    deleteButton.onclick = () => deleteEventFromView(event.id);
+
+    actions.appendChild(deleteButton);
+
+    header.appendChild(icon);
+    header.appendChild(titleGroup);
+    header.appendChild(actions);
+
+    const metaWrapper = document.createElement('div');
+    metaWrapper.className = 'event-view-card__meta';
+    metaWrapper.appendChild(createMetaItem('Matrícula', event.employeeId || '—'));
+    metaWrapper.appendChild(createMetaItem('Criado em', formatDateTime(event.createdAt)));
+
+    const notesWrapper = document.createElement('div');
+    notesWrapper.className = 'event-view-card__notes';
+    if (event.notes) {
+      const notesLabel = document.createElement('span');
+      notesLabel.className = 'event-view-card__notes-label';
+      notesLabel.textContent = 'Observações';
+      const notesText = document.createElement('p');
+      notesText.className = 'event-view-card__notes-text';
+      notesText.textContent = event.notes;
+      notesWrapper.appendChild(notesLabel);
+      notesWrapper.appendChild(notesText);
+    } else {
+      notesWrapper.classList.add('event-view-card__notes--empty');
+      const emptyText = document.createElement('p');
+      emptyText.textContent = 'Nenhuma observação adicionada.';
+      notesWrapper.appendChild(emptyText);
+    }
+
+    card.appendChild(header);
+    card.appendChild(metaWrapper);
+    card.appendChild(notesWrapper);
+
+    eventsCollection.appendChild(card);
+  });
+
+  if (emptyStateEl) {
+    emptyStateEl.style.display = eventsCollection.children.length === 0 ? 'flex' : 'none';
+  }
   
   modal.style.display = 'block';
   setTimeout(() => modal.classList.add('show'), 10);
@@ -1908,15 +2025,26 @@ function openEventsViewModal(events, date) {
 function createEventsViewModal() {
   const modalHTML = `
     <div id="eventsViewModal" class="modal">
-      <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-content event-view">
         <div class="modal-header">
-          <span class="close" onclick="closeEventsViewModal()">&times;</span>
+          <button type="button" class="close" onclick="closeEventsViewModal()" aria-label="Fechar visualização de eventos">&times;</button>
           <h2 id="eventsViewTitle">📅 Eventos do Dia</h2>
         </div>
         <div class="modal-body">
-          <div id="eventsViewList" class="events-list">
-            <!-- Os eventos serão listados aqui -->
+          <section class="events-view-summary">
+            <div class="events-view-summary__icon">📆</div>
+            <div class="events-view-summary__content">
+              <h3 id="eventsViewDateLabel">Data selecionada</h3>
+              <p id="eventsViewMeta">0 eventos cadastrados para esta data</p>
+            </div>
+            <div class="events-view-summary__stats" id="eventsViewStats"></div>
+          </section>
+          <div id="eventsViewEmpty" class="events-view-empty">
+            <span class="events-view-empty__icon">✨</span>
+            <p class="events-view-empty__text">Nenhum evento registrado neste dia.</p>
+            <button type="button" class="events-view-empty__action" onclick="addEventToCurrentDate()">Adicionar evento</button>
           </div>
+          <section id="eventsViewCollection" class="events-view-collection"></section>
         </div>
         <div class="modal-footer">
           <button onclick="addEventToCurrentDate()" class="control-button export-btn">➕ Adicionar Evento</button>
@@ -1965,11 +2093,21 @@ async function deleteEventFromView(eventId) {
       // Recarregar eventos do servidor
       await loadEventsFromServer();
       
-      // Fechar modal atual e reabrir com eventos atualizados
+      // Fechar modal atual para evitar flicker antes de reabrir
       closeEventsViewModal();
       
       // Renderizar calendário novamente
       renderCalendar();
+      
+      // Reabrir modal com lista atualizada (incluindo estado vazio)
+      if (selectedDate) {
+        const selectedDateString = selectedDate.toISOString().split('T')[0];
+        const updatedEvents = calendarEvents.filter(event => event.date === selectedDateString);
+        openEventsViewModal(updatedEvents, selectedDate);
+      }
+      
+      // Atualizar botão principal do calendário
+      updateCalendarActionButton();
       
       // Mostrar notificação de sucesso
       showTableChangeNotification('Evento excluído', 'com sucesso');
@@ -2270,7 +2408,8 @@ function viewExistingEvent(eventId) {
   const existingEvent = calendarEvents.find(e => e.id === eventId);
   if (existingEvent) {
     const eventDate = new Date(existingEvent.date);
-    alert(`📋 EVENTO EXISTENTE\n\nData: ${eventDate.toLocaleDateString('pt-BR')}\nColaborador: ${existingEvent.employeeName}\nTipo: ${getAbsenceTypeName(existingEvent.absenceType)}\nObservações: ${existingEvent.notes || 'Nenhuma'}\n\n💡 Para substituir, continue com o cadastro atual.`);
+    selectedDate = eventDate;
+    openEventsViewModal([existingEvent], eventDate);
   }
 }
 
