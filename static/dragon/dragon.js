@@ -4,6 +4,29 @@ const screen = document.getElementById("screen");
 const xmlns = "http://www.w3.org/2000/svg";
 const xlinkns = "http://www.w3.org/1999/xlink";
 
+const getBody = () => document.body || document.documentElement;
+
+const createGlowLayer = () => {
+	const host = getBody();
+	if (!host) return null;
+	let layer = document.querySelector('.dragon-glow-layer');
+	if (layer) return layer;
+	layer = document.createElement('div');
+	layer.className = 'dragon-glow-layer is-dormant';
+	layer.innerHTML = `
+		<div class="dragon-glow dragon-glow--primary"></div>
+		<div class="dragon-glow dragon-glow--secondary"></div>
+		<div class="dragon-glow dragon-glow--orb"></div>
+		<div class="dragon-sparkles"></div>
+	`;
+	host.appendChild(layer);
+	return layer;
+};
+
+const glowLayer = createGlowLayer();
+let lastOverlayState = null;
+let lastRageState = false;
+
 window.addEventListener(
 	"pointermove",
 	(e) => {
@@ -36,8 +59,6 @@ const CLICK_WINDOW = 2600;
 const CLICK_THRESHOLD = 7;
 const RAGE_DURATION = 5200;
 
-const getBody = () => document.body || document.documentElement;
-
 const isOverlayActive = () => {
 	if (typeof window.isDragonOverlayActive === "function") {
 		return window.isDragonOverlayActive();
@@ -50,6 +71,10 @@ const applyRageState = (active) => {
 	const body = getBody();
 	if (!body) return;
 	body.classList.toggle("dragon-rage", active);
+	if (glowLayer && lastRageState !== active) {
+		glowLayer.classList.toggle('is-rage', active);
+		lastRageState = active;
+	}
 };
 
 const enterRage = () => {
@@ -132,6 +157,14 @@ const run = () => {
 	const center = { x: width / 2, y: height / 2 };
 	radm = Math.max(60, Math.min(pointer.x, pointer.y, width - pointer.x, height - pointer.y) - 20);
 
+	if (glowLayer) {
+		if (lastOverlayState !== overlay) {
+			glowLayer.classList.toggle('is-active', overlay);
+			glowLayer.classList.toggle('is-dormant', !overlay);
+			lastOverlayState = overlay;
+		}
+	}
+
 	if (!overlay) {
 		mood.clickBoost = Math.max(0, mood.clickBoost * 0.92 - 0.05);
 		if (mood.rage) exitRage();
@@ -174,6 +207,13 @@ const run = () => {
 	frm += speed;
 
 	mood.clickPulse = Math.max(0, mood.clickPulse - 0.08);
+
+	if (glowLayer) {
+		const glowStrength = Math.min(1.45, 0.55 + mood.clickBoost * 0.02 + mood.rageLevel * 0.4);
+		const glowPulse = Math.min(1.6, 0.85 + mood.clickPulse * 0.35 + mood.rageLevel * 0.45);
+		glowLayer.style.setProperty('--dragon-glow-strength', glowStrength.toFixed(2));
+		glowLayer.style.setProperty('--dragon-glow-pulse', glowPulse.toFixed(2));
+	}
 
 	if (rad > 60 && !overlay) {
 		pointer.x += (center.x - pointer.x) * 0.05;
