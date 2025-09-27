@@ -2808,31 +2808,17 @@ function updateTableAbsences() {
 
 // Função para criar painel de resumo das ausencias
 function createAbsenceSummaryPanel() {
-  // Verificar se o painel já existe
   let panel = document.getElementById('absenceSummaryPanel');
   if (!panel) {
-    panel = document.createElement('div');
+    panel = document.createElement('section');
     panel.id = 'absenceSummaryPanel';
-    panel.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      z-index: 1000;
-      max-width: 300px;
-      min-width: 250px;
-      font-family: Arial, sans-serif;
-      transform: translateX(100%);
-      transition: transform 0.3s ease;
-    `;
-    
+    panel.className = 'absence-summary-panel';
+    panel.setAttribute('role', 'status');
+    panel.setAttribute('aria-live', 'polite');
+    panel.setAttribute('aria-atomic', 'true');
     document.body.appendChild(panel);
   }
-  
+
   return panel;
 }
 
@@ -2843,6 +2829,18 @@ function updateAbsenceSummaryPanel() {
   
   // Obter eventos do servidor
   const events = calendarEvents || [];
+
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
   
   // Filtrar eventos para hoje
   const todayEvents = events.filter(event => {
@@ -2861,51 +2859,104 @@ function updateAbsenceSummaryPanel() {
   // Mostrar painel apenas se houver ausencias
   if (todayEvents.length > 0) {
     const panel = createAbsenceSummaryPanel();
-    
-    let content = `
-      <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <div style="width: 20px; height: 20px; background: #FFD700; border-radius: 50%; margin-right: 10px;"></div>
-        <strong>ausencias Hoje</strong>
-      </div>
-      <div style="font-size: 12px; margin-bottom: 15px;">
-        ${today.toLocaleDateString('pt-BR')}
-      </div>
-    `;
-    
-    // Adicionar contadores por tipo
-    Object.keys(absenceCount).forEach(type => {
-      const count = absenceCount[type];
-      const typeName = getAbsenceTypeName(type);
-      content += `
-        <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-          <span>${typeName}</span>
-          <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 11px;">${count}</span>
+
+  const weekday = today.toLocaleDateString('pt-BR', { weekday: 'long' });
+  const formattedWeekday = weekday ? escapeHtml(weekday.charAt(0).toUpperCase() + weekday.slice(1)) : '';
+  const formattedDate = escapeHtml(today.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }));
+
+    const typeBadges = Object.entries(absenceCount)
+      .sort(([, a], [, b]) => b - a)
+      .map(([type, count]) => {
+        const rawTypeName = typeof getAbsenceTypeName === 'function' ? getAbsenceTypeName(type) : (type || 'Ausência');
+        const typeName = escapeHtml(rawTypeName);
+        const normalizedType = (type || 'outros').toLowerCase();
+        return `
+          <span class="absence-summary-badge" data-type="${normalizedType}">
+            <span class="absence-summary-badge-label">${typeName}</span>
+            <span class="absence-summary-badge-count">${count}</span>
+          </span>
+        `;
+      })
+      .join('');
+
+    const highlightEvents = todayEvents
+      .slice()
+      .sort((a, b) => {
+        const nameA = (a.employeeName || a.employee || a.collaboratorName || '').localeCompare(
+          b.employeeName || b.employee || b.collaboratorName || '',
+          'pt-BR',
+          { sensitivity: 'base' }
+        );
+        return nameA;
+      })
+      .slice(0, 4);
+
+    const listItems = highlightEvents
+      .map((event, index) => {
+  const employeeName = escapeHtml(event.employeeName || event.employee || event.collaboratorName || event.matricula || 'Colaborador');
+  const typeName = escapeHtml(typeof getAbsenceTypeName === 'function' ? getAbsenceTypeName(event.absenceType) : (event.absenceType || 'Ausência'));
+        const notes = escapeHtml(event.eventNotes || event.notes || '');
+        const hasNotes = notes && notes.trim().length > 0;
+        const normalizedType = (event.absenceType || 'outros').toLowerCase();
+        return `
+          <li class="absence-summary-item" data-type="${normalizedType}">
+            <span class="absence-summary-item-index">${String(index + 1).padStart(2, '0')}</span>
+            <div class="absence-summary-item-body">
+              <p class="absence-summary-item-name" title="${employeeName}">${employeeName}</p>
+              <span class="absence-summary-item-type">${typeName}</span>
+              ${hasNotes ? `<span class="absence-summary-item-note">${notes}</span>` : ''}
+            </div>
+          </li>
+        `;
+      })
+      .join('');
+
+    const remainingCount = todayEvents.length - highlightEvents.length;
+
+    panel.innerHTML = `
+      <header class="absence-summary-header">
+        <div class="absence-summary-icon" aria-hidden="true">📩</div>
+        <div class="absence-summary-header-copy">
+          <p class="absence-summary-label">Ausências de hoje</p>
+          <time class="absence-summary-date" datetime="${todayStr}">${formattedWeekday ? `${formattedWeekday}, ` : ''}${formattedDate}</time>
         </div>
-      `;
-    });
-    
-    content += `
-      <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 11px;">
-        <strong>Total: ${todayEvents.length} ausencia${todayEvents.length > 1 ? 's' : ''}</strong>
+        <button type="button" class="absence-summary-close" aria-label="Ocultar alerta de ausências" onclick="hideAbsenceSummaryPanel()">✕</button>
+      </header>
+      <div class="absence-summary-body">
+        <div class="absence-summary-stats" role="group" aria-label="Totais por tipo de ausência">
+          ${typeBadges || '<span class="absence-summary-badge absence-summary-badge--empty">Nenhum detalhamento disponível</span>'}
+        </div>
+        <ul class="absence-summary-list" aria-label="Colaboradores ausentes hoje">
+          ${listItems || '<li class="absence-summary-item absence-summary-item--empty">Nenhum colaborador disponível para exibição</li>'}
+        </ul>
+        ${remainingCount > 0 ? `<p class="absence-summary-more">+${remainingCount} ${remainingCount === 1 ? 'colaborador' : 'colaboradores'} com ausência hoje</p>` : ''}
       </div>
-      <div style="margin-top: 10px; text-align: right;">
-        <button onclick="hideAbsenceSummaryPanel()" style="background: none; border: 1px solid rgba(255,255,255,0.5); color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">
-          Ocultar
-        </button>
-      </div>
+      <footer class="absence-summary-footer">
+        <div class="absence-summary-total" aria-live="off">
+          <span class="absence-summary-total-count">${todayEvents.length}</span>
+          <span class="absence-summary-total-label">${todayEvents.length === 1 ? 'registro' : 'registros'}</span>
+        </div>
+        <div class="absence-summary-actions">
+          <button type="button" class="absence-summary-action absence-summary-action--primary" onclick="openCalendarModal()">Abrir calendário</button>
+          <button type="button" class="absence-summary-action absence-summary-action--ghost" onclick="hideAbsenceSummaryPanel()">Ocultar</button>
+        </div>
+      </footer>
     `;
-    
-    panel.innerHTML = content;
-    
-    // Mostrar painel
-    setTimeout(() => {
-      panel.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Auto-ocultar após 10 segundos
-    setTimeout(() => {
+
+    if (panel._autoHideHandle) {
+      clearTimeout(panel._autoHideHandle);
+    }
+
+    // Forçar reflow para reiniciar animação quando necessário
+    panel.classList.remove('is-visible');
+    void panel.offsetWidth;
+    panel.classList.add('is-visible');
+
+    panel._autoHideHandle = setTimeout(() => {
       hideAbsenceSummaryPanel();
-    }, 10000);
+    }, 12000);
+  } else {
+    hideAbsenceSummaryPanel();
   }
 }
 
@@ -2913,10 +2964,17 @@ function updateAbsenceSummaryPanel() {
 function hideAbsenceSummaryPanel() {
   const panel = document.getElementById('absenceSummaryPanel');
   if (panel) {
-    panel.style.transform = 'translateX(100%)';
+    if (panel._autoHideHandle) {
+      clearTimeout(panel._autoHideHandle);
+      panel._autoHideHandle = null;
+    }
+
+    panel.classList.remove('is-visible');
     setTimeout(() => {
-      panel.remove();
-    }, 300);
+      if (panel && panel.parentNode) {
+        panel.remove();
+      }
+    }, 350);
   }
 }
 
