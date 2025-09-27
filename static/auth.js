@@ -27,14 +27,32 @@
 class AuthManager {
     constructor() {
         this.isAuthenticated = false;
+        this.appInitialized = false;
         this.init();
     }
 
     init() {
-        // Bloquear o acesso inicial
+        // Bloquear o acesso inicial e tentar restaurar a sessão existente
         this.blockApp();
-        
-        // Mostrar modal de autenticação imediatamente
+        this.restoreSession();
+    }
+
+    async restoreSession() {
+        try {
+            const response = await fetch('/auth/status', { credentials: 'same-origin' });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.authenticated) {
+                    this.isAuthenticated = true;
+                    this.onAuthSuccess(true);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Não foi possível verificar a sessão existente:', error);
+        }
+
+        // Se não autenticado, exibir modal normalmente
         this.showAuthModal();
     }
 
@@ -51,6 +69,10 @@ class AuthManager {
     }
 
     showAuthModal() {
+        if (document.getElementById('auth-modal')) {
+            document.getElementById('auth-modal').style.visibility = 'visible';
+            return;
+        }
         // Criar modal de autenticação
         const modalHTML = `
             <div id="auth-modal" style="
@@ -128,7 +150,6 @@ class AuthManager {
     setupAuthEvents() {
         const passwordInput = document.getElementById('auth-password');
         const submitBtn = document.getElementById('auth-submit');
-        const errorDiv = document.getElementById('auth-error');
 
         // Enter no input de senha
         passwordInput.addEventListener('keypress', (e) => {
@@ -149,7 +170,6 @@ class AuthManager {
     async authenticateUser() {
         const passwordInput = document.getElementById('auth-password');
         const submitBtn = document.getElementById('auth-submit');
-        const errorDiv = document.getElementById('auth-error');
         
         const password = passwordInput.value.trim();
 
@@ -207,14 +227,11 @@ class AuthManager {
         }, 3000);
     }
 
-    onAuthSuccess() {
-        console.log('✅ Autenticação realizada com sucesso');
-        
-        // Remover modal
-        const modal = document.getElementById('auth-modal');
-        if (modal) {
-            modal.remove();
-        }
+    onAuthSuccess(isRestored = false) {
+        console.log(isRestored ? '🔄 Sessão restaurada com sucesso' : '✅ Autenticação realizada com sucesso');
+
+        // Remover modal, se existir
+        this.removeAuthModal();
 
         // Desbloquear aplicação
         this.unblockApp();
@@ -223,7 +240,18 @@ class AuthManager {
         this.initializeApp();
     }
 
+    removeAuthModal() {
+        const modal = document.getElementById('auth-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
     initializeApp() {
+        if (this.appInitialized) {
+            return;
+        }
+        this.appInitialized = true;
         console.log('🚀 Inicializando aplicação...');
         
         // Carregar dados da API se a função existir
@@ -235,17 +263,6 @@ class AuthManager {
         console.log('✅ Aplicação inicializada');
     }
 
-    async logout() {
-        try {
-            await fetch('/logout', { method: 'POST' });
-            
-            // Recarregar página para mostrar tela de login novamente
-            window.location.reload();
-            
-        } catch (error) {
-            console.error('Erro no logout:', error);
-        }
-    }
 }
 
 // Inicializar sistema de autenticação quando a página carregar
@@ -253,9 +270,3 @@ document.addEventListener('DOMContentLoaded', () => {
     window.authManager = new AuthManager();
 });
 
-// Função global para logout (pode ser chamada de qualquer lugar)
-window.logout = () => {
-    if (window.authManager) {
-        window.authManager.logout();
-    }
-};

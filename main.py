@@ -1,9 +1,9 @@
 import pandas as pd
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy # type: ignore
 from functools import wraps
 import tkinter as tk
 from tkinter import ttk
@@ -12,6 +12,7 @@ import threading
 
 app = Flask(__name__, template_folder='.')
 app.secret_key = 'sua_chave_secreta_super_segura_aqui_2024!'
+app.permanent_session_lifetime = timedelta(days=7)
 
 # Configuração do SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///eventos_ausencia.db'
@@ -286,6 +287,7 @@ def authenticate():
         senha = dados.get('password', '')
         
         if senha == ADMIN_PASSWORD:
+            session.permanent = True
             session['authenticated'] = True
             return jsonify({'sucesso': True, 'mensagem': 'Autenticado com sucesso'})
         else:
@@ -294,11 +296,10 @@ def authenticate():
     except Exception as e:
         return jsonify({'sucesso': False, 'mensagem': 'Erro no servidor'}), 500
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    """Endpoint para logout"""
-    session.pop('authenticated', None)
-    return jsonify({'sucesso': True})
+@app.route('/auth/status', methods=['GET'])
+def auth_status():
+    """Retorna se o usuário já está autenticado na sessão atual"""
+    return jsonify({'authenticated': bool(session.get('authenticated', False))})
 
 @app.route('/tabelas')
 @requires_auth
@@ -485,17 +486,6 @@ def excluir_evento(evento_id):
             
     except Exception as e:
         db.session.rollback()
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/eventos/colaborador/<matricula>', methods=['GET'])
-@requires_auth
-def obter_eventos_colaborador(matricula):
-    """Retorna eventos de um colaborador específico"""
-    try:
-        eventos_db = EventoAusencia.query.filter_by(employee_id=str(matricula)).all()
-        eventos_serializados = [evento.serialize() for evento in eventos_db]
-        return jsonify({'eventos': eventos_serializados})
-    except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
 @app.route('/ausencia', methods=['POST'])

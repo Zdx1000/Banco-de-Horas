@@ -7,12 +7,10 @@
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><style>.clock-face{fill:%23ffffff;stroke:%23333;stroke-width:3}.hour-hand{animation:rotate-hour 43200s linear infinite;transform-origin:50px 50px}.minute-hand{animation:rotate-minute 3600s linear infinite;transform-origin:50px 50px}.second-hand{animation:rotate-second 60s linear infinite;transform-origin:50px 50px}@keyframes rotate-hour{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes rotate-minute{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes rotate-second{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.tick{stroke:%23333;stroke-width:1}</style></defs><circle cx=%2250%22 cy=%2250%22 r=%2245%22 class=%22clock-face%22/><g class=%22ticks%22><line x1=%2250%22 y1=%2210%22 x2=%2250%22 y2=%2218%22 class=%22tick%22/><line x1=%2290%22 y1=%2250%22 x2=%2282%22 y2=%2250%22 class=%22tick%22/><line x1=%2250%22 y1=%2290%22 x2=%2250%22 y2=%2282%22 class=%22tick%22/><line x1=%2210%22 y1=%2250%22 x2=%2218%22 y2=%2250%22 class=%22tick%22/></g><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2230%22 class=%22hour-hand%22 stroke=%22%23333%22 stroke-width=%223%22/><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2220%22 class=%22minute-hand%22 stroke=%22%23666%22 stroke-width=%222%22/><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2215%22 class=%22second-hand%22 stroke=%22%23ff0000%22 stroke-width=%221%22/><circle cx=%2250%22 cy=%2250%22 r=%223%22 fill=%22%23333%22/></svg>">
   
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="static/style.css">
   <link rel="stylesheet" href="static/dragon/dragon.css">
   
@@ -99,34 +97,59 @@
 
     <div class="main" id="main">
       <header>
-        <h1>Dashboard Banco de horas</h1>
-        <p>Métricas detalhadas e insights para tomada de decisão</p>
-              <div class="header-actions">
-                <button class="chart-btn refresh-btn" id="refreshBtn" onclick="refreshAllData()">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                        <path d="M21 3v5h-5"/>
-                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                        <path d="M3 21v-5h5"/>
-                    </svg>
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span class="btn-title">REFRESH</span>
-            <span class="btn-subtitle">Atualizar Dados</span>
-                    </div>
-                </button>
-                <button class="chart-btn" id="chartBtn" onclick="openCalendarModal()">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-          <div style="display: flex; flex-direction: column; align-items: center;">
-            <span class="btn-title">Alimentar Dados</span>
-            <span class="btn-subtitle" id="currentDate"></span>
-                    </div>
-                </button>
+        <div class="header-content">
+          <div class="header-info">
+            <div class="header-title">
+              <h1>Dashboard Banco de horas</h1>
+              <p>Métricas detalhadas e insights para tomada de decisão</p>
             </div>
+            <div class="header-meta">
+              <div class="absence-indicator" data-role="header-indicator" aria-live="polite">
+                <span class="indicator-dot" aria-hidden="true"></span>
+                <div class="indicator-text">
+                  <span class="indicator-label">Ausentes hoje</span>
+                  <span id="ausentes-hoje" class="indicator-value">--</span>
+                </div>
+              </div>
+              <span class="header-tagline">Monitoramento em tempo real do banco de horas</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button class="chart-btn refresh-btn" id="refreshBtn" onclick="refreshAllData()">
+              <span class="button-icon">
+                <svg class="chart-icon" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <polyline points="21 4 21 10 15 10" />
+                  <path d="M21 12a9 9 0 1 1-3.2-6.6" />
+                  <path d="M21 4l-3-3" />
+                </svg>
+              </span>
+              <span class="button-text">
+                <span class="btn-title">REFRESH</span>
+                <span class="btn-subtitle">Atualizar Dados</span>
+              </span>
+            </button>
+            <button class="chart-btn calendar-btn" id="chartBtn" onclick="openCalendarModal()">
+              <span class="button-icon">
+                <svg class="chart-icon" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <rect x="3.5" y="4" width="17" height="17" rx="2.5" />
+                  <line x1="16" y1="2.5" x2="16" y2="6" />
+                  <line x1="8" y1="2.5" x2="8" y2="6" />
+                  <line x1="3.5" y1="10" x2="20.5" y2="10" />
+                  <circle cx="8" cy="14.5" r="0.9" />
+                  <circle cx="12" cy="14.5" r="0.9" />
+                  <circle cx="16" cy="14.5" r="0.9" />
+                  <circle cx="8" cy="18.5" r="0.9" />
+                  <circle cx="12" cy="18.5" r="0.9" />
+                  <circle cx="16" cy="18.5" r="0.9" />
+                </svg>
+              </span>
+              <span class="button-text">
+                <span class="btn-title">Alimentar Dados</span>
+                <span class="btn-subtitle" id="currentDate"></span>
+              </span>
+            </button>
+          </div>
+        </div>
       </header>
       
       <div class="info-cards">
@@ -165,16 +188,16 @@
       <div class="info-card info-card-row">
           <img src="https://cdn-icons-png.flaticon.com/512/2329/2329038.png" alt="Ícone">
           <div>
-          <button class="btn-compensacao" onclick="openCompensacaoModal()">Compensação</button>
+          <button class="btn-compensacao" onclick="openCompensacaoModal()" aria-label="Compensação">Compensação</button>
           <p>Gestão de compensação</p>
         </div>
       </div>
 
       </div>
 
-        <div class="table-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
-          <div class="table-wrapper">
-            <table id="relatorioTable" style="flex: 1; min-width: 700px;">
+  <div class="table-container">
+      <div class="table-wrapper">
+        <table id="relatorioTable">
               <thead id="tableHead">
               <tr>
                 <th colspan="4" style="text-align: center; font-family: Arial; font-size: 18px; background-color: rgba(0, 22, 56, 0.301); color: white;">
@@ -187,7 +210,7 @@
           </div>
           
           <div class="table-wrapper">
-            <table id="relatorioTable2" style="flex: 1; min-width: 700px;">
+            <table id="relatorioTable2">
               <thead id="tableHead2">
               <tr>
                 <th colspan="4" style="text-align: center; font-family: Arial Black; font-size: 18px; background-color: rgba(0, 0, 100, 0.336); color: white;">
@@ -218,7 +241,7 @@
   <div id="compensacaoModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="close" onclick="closeModal()">&times;</span>
+  <button type="button" class="close" onclick="closeModal()" aria-label="Fechar painel de compensação">&times;</button>
         <h2>📊 Compensação de Ausências</h2>
       </div>
       <div class="modal-body">
@@ -246,7 +269,7 @@
   <div id="calendarOptionsModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="close" onclick="closeCalendarModal()">&times;</span>
+  <button type="button" class="close" onclick="closeCalendarModal()" aria-label="Fechar opções do calendário">&times;</button>
         <h2>📅 Opções do Sistema</h2>
       </div>
       <div class="modal-body">
@@ -283,7 +306,7 @@
   <div id="calendarModal" class="modal">
     <div class="modal-content calendar">
       <div class="modal-header">
-        <span class="close" onclick="closeCalendarViewModal()">&times;</span>
+  <button type="button" class="close" onclick="closeCalendarViewModal()" aria-label="Fechar calendário">&times;</button>
         <h2>📅 Calendário</h2>
       </div>
       <div class="modal-body">
@@ -321,7 +344,7 @@
   <div id="exportModal" class="modal">
     <div class="modal-content" style="max-width: 520px;">
       <div class="modal-header">
-        <span class="close" onclick="closeExportModal()">&times;</span>
+  <button type="button" class="close" onclick="closeExportModal()" aria-label="Fechar exportação de eventos">&times;</button>
         <h2>📤 Exportar Eventos</h2>
       </div>
       <div class="modal-body">
@@ -348,7 +371,7 @@
   <div id="eventModal" class="modal">
     <div class="modal-content event">
       <div class="modal-header">
-        <span class="close" onclick="closeEventModal()">&times;</span>
+  <button type="button" class="close" onclick="closeEventModal()" aria-label="Fechar formulário de evento">&times;</button>
         <h2>📅 Adicionar Evento</h2>
       </div>
       <div class="modal-body">

@@ -299,6 +299,10 @@ function atualizarTabelas(data) {
     if (ausentesIndicator) {
       ausentesIndicator.textContent = data.total_ausentes;
     }
+
+    if (typeof addAbsenceIndicators === 'function') {
+      addAbsenceIndicators(data.total_ausentes);
+    }
   }
   
   // Log detalhado dos colaboradores ausentes
@@ -319,6 +323,11 @@ function atualizarTabelas(data) {
   // Chamar sincronização via window se api-loader.js estiver presente
   if (window.syncTabela3Data) {
     window.syncTabela3Data(data.tabela_3);
+  }
+
+  // Delegar renderização das tabelas para o módulo api-loader quando disponível
+  if (typeof window.renderApiTables === 'function') {
+    window.renderApiTables(data);
   }
 }
 
@@ -964,10 +973,11 @@ function openCompensacaoModal() {
   }
   
   // Contar eventos por período
-  const todayEvents = events.filter(event => {
+  const todayEventsList = events.filter(event => {
     const eventDate = new Date(event.date).toISOString().split('T')[0];
     return eventDate === todayStr;
-  }).length;
+  });
+  const todayEvents = todayEventsList.length;
   
   const futureEvents = events.filter(event => {
     const eventDate = new Date(event.date);
@@ -978,86 +988,228 @@ function openCompensacaoModal() {
     const eventDate = new Date(event.date);
     return eventDate < today;
   }).length;
+
+  const uniqueEmployeesToday = new Set(
+    todayEventsList.map(event => event.employeeId || event.employeeName || 'desconhecido')
+  ).size;
+
+  // Últimos 7 dias
+  const last7DaysStart = new Date(today);
+  last7DaysStart.setDate(last7DaysStart.getDate() - 6);
+  const last7DaysStartStr = last7DaysStart.toISOString().split('T')[0];
+  const last7DaysEvents = events.filter(event => event.date >= last7DaysStartStr && event.date <= todayStr);
+  const last7DaysCounters = last7DaysEvents.reduce((acc, event) => {
+    const type = (event.absenceType || '').toLowerCase();
+    if (acc[type] !== undefined) {
+      acc[type]++;
+    }
+    return acc;
+  }, { folga: 0, ferias: 0, atestado: 0, falta: 0 });
+  const totalLast7Days = last7DaysEvents.length;
+  const averagePerDay = totalLast7Days / 7;
+
+  // Próximos 30 dias
+  const futureRangeEnd = new Date(today);
+  futureRangeEnd.setDate(futureRangeEnd.getDate() + 30);
+  const futureRangeEndStr = futureRangeEnd.toISOString().split('T')[0];
+  const next30DaysEvents = events.filter(event => event.date > todayStr && event.date <= futureRangeEndStr);
+  const uniqueNext30DaysEmployees = new Set(
+    next30DaysEvents.map(event => event.employeeId || event.employeeName || 'desconhecido')
+  ).size;
+
+  const upcomingEvents = events
+    .filter(event => event.date > todayStr)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 5);
+
+  const nextEventLabel = upcomingEvents.length > 0
+    ? new Date(upcomingEvents[0].date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+    : 'Nenhum';
+
+  const tendenciaTexto = (function() {
+    if (total === 0 && totalLast7Days === 0) {
+      return 'Fluxo normal';
+    }
+    if (total > averagePerDay + 0.5) {
+      return 'Acima da média semanal';
+    }
+    if (total < averagePerDay - 0.5) {
+      return 'Abaixo da média semanal';
+    }
+    return 'Dentro da média semanal';
+  })();
+
+  const distribuicaoPercentual = (tipoValor) => {
+    if (!total) return 0;
+    return Math.round((tipoValor / total) * 100);
+  };
   
+  const absenceCards = [
+    {
+      type: 'folga',
+      icon: '🏖️',
+      title: 'Folga',
+      subtitle: 'Dias de descanso (hoje)',
+      value: dados.folga
+    },
+    {
+      type: 'ferias',
+      icon: '✈️',
+      title: 'Férias',
+      subtitle: 'Período de descanso (hoje)',
+      value: dados.ferias
+    },
+    {
+      type: 'atestado',
+      icon: '🏥',
+      title: 'Atestado',
+      subtitle: 'Licença médica (hoje)',
+      value: dados.atestado
+    },
+    {
+      type: 'falta',
+      icon: '⚠️',
+      title: 'Falta',
+      subtitle: 'Ausência não justificada (hoje)',
+      value: dados.falta
+    }
+  ];
+
+  const summaryStats = [
+    { label: 'Hoje', value: todayEvents, accent: 'primary' },
+    { label: 'Futuros', value: futureEvents, accent: 'info' },
+    { label: 'Passados', value: pastEvents, accent: 'muted' },
+    { label: 'Total Geral', value: events.length, accent: 'success' }
+  ];
+
+  const distributionData = [
+    { label: 'Folga', value: dados.folga, className: 'folga' },
+    { label: 'Férias', value: dados.ferias, className: 'ferias' },
+    { label: 'Atestado', value: dados.atestado, className: 'atestado' },
+    { label: 'Falta', value: dados.falta, className: 'falta' }
+  ];
+
+  const formatEventDate = (event) => {
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const dayLabel = eventDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const weekDay = eventDate.toLocaleDateString('pt-BR', { weekday: 'short' });
+    return { dayLabel, weekDay };
+  };
+
   compensacaoData.innerHTML = `
-    <div style="margin-bottom: 15px; text-align: center; padding: 10px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border-radius: 8px;">
-      <h4 style="margin: 0; font-size: 16px;">📅 ausencias de Hoje - ${today.toLocaleDateString('pt-BR')}</h4>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-      <div class="compensacao-item folga">
-        <div class="compensacao-item-header">
-          <div class="compensacao-icon">🏖️</div>
-          <div class="compensacao-info">
-            <h3 class="compensacao-title">Folga</h3>
-            <p class="compensacao-subtitle">Dias de descanso (hoje)</p>
+    <header class="compensacao-heading">
+      <div class="compensacao-heading-icon">📅</div>
+      <div class="compensacao-heading-content">
+        <h4>Ausências de hoje</h4>
+        <span>${today.toLocaleDateString('pt-BR')}</span>
+      </div>
+    </header>
+
+    <section class="compensacao-grid">
+      ${absenceCards.map(card => `
+        <article class="compensacao-item ${card.type}">
+          <div class="compensacao-item-header">
+            <div class="compensacao-icon">${card.icon}</div>
+            <div class="compensacao-info">
+              <h3 class="compensacao-title">${card.title}</h3>
+              <p class="compensacao-subtitle">${card.subtitle}</p>
+            </div>
           </div>
-        </div>
-        <div class="compensacao-count">${dados.folga}</div>
+          <div class="compensacao-count">${card.value}</div>
+        </article>
+      `).join('')}
+    </section>
+
+    <section class="compensacao-summary">
+      <div class="summary-header">
+        <h4>📊 Estatísticas gerais do calendário</h4>
+        <span>Atualizado automaticamente</span>
       </div>
-      
-      <div class="compensacao-item ferias">
-        <div class="compensacao-item-header">
-          <div class="compensacao-icon">✈️</div>
-          <div class="compensacao-info">
-            <h3 class="compensacao-title">Ferias</h3>
-            <p class="compensacao-subtitle">Período de descanso (hoje)</p>
+      <div class="summary-grid">
+        ${summaryStats.map(stat => `
+          <div class="summary-stat summary-stat--${stat.accent}">
+            <strong>${stat.value}</strong>
+            <span>${stat.label}</span>
           </div>
-        </div>
-        <div class="compensacao-count">${dados.ferias}</div>
+        `).join('')}
       </div>
-      
-      <div class="compensacao-item atestado">
-        <div class="compensacao-item-header">
-          <div class="compensacao-icon">🏥</div>
-          <div class="compensacao-info">
-            <h3 class="compensacao-title">Atestado</h3>
-            <p class="compensacao-subtitle">Licença médica (hoje)</p>
+    </section>
+
+    <section class="compensacao-insights">
+      <div class="insight-card">
+        <span class="insight-label">Eventos (7 dias)</span>
+        <span class="insight-value">${totalLast7Days}</span>
+        <span class="insight-sub">Média diária ${averagePerDay.toFixed(1)} / ${last7DaysCounters.falta} faltas</span>
+      </div>
+      <div class="insight-card">
+        <span class="insight-label">Agenda (30 dias)</span>
+        <span class="insight-value">${next30DaysEvents.length}</span>
+        <span class="insight-sub">${next30DaysEvents.length ? `Próx. ${nextEventLabel} • ${uniqueNext30DaysEmployees} colab.` : 'Sem eventos agendados'}</span>
+      </div>
+      <div class="insight-card">
+        <span class="insight-label">Impacto hoje</span>
+        <span class="insight-value">${uniqueEmployeesToday}</span>
+        <span class="insight-sub">Colaboradores únicos</span>
+      </div>
+    </section>
+
+    <section class="compensacao-distribution">
+      <div class="distribution-header">
+        <h4>Distribuição das ausências hoje</h4>
+        <span>${total ? `Baseado em ${total} eventos` : 'Sem eventos registrados hoje'}</span>
+      </div>
+      <div class="distribution-list">
+        ${distributionData.map(item => `
+          <div class="distribution-item">
+            <div class="distribution-meta">
+              <span>${item.label}</span>
+              <span>${item.value} (${distribuicaoPercentual(item.value)}%)</span>
+            </div>
+            <div class="distribution-bar">
+              <div class="bar ${item.className}" style="width: ${distribuicaoPercentual(item.value)}%;"></div>
+            </div>
           </div>
-        </div>
-        <div class="compensacao-count">${dados.atestado}</div>
+        `).join('')}
       </div>
-      
-      <div class="compensacao-item falta">
-        <div class="compensacao-item-header">
-          <div class="compensacao-icon">⚠️</div>
-          <div class="compensacao-info">
-            <h3 class="compensacao-title">Falta</h3>
-            <p class="compensacao-subtitle">ausencia não justificada (hoje)</p>
-          </div>
-        </div>
-        <div class="compensacao-count">${dados.falta}</div>
+    </section>
+
+    <section class="compensacao-upcoming">
+      <div class="upcoming-header">
+        <h4>Próximas ausências programadas</h4>
+        <span>${upcomingEvents.length ? `${upcomingEvents.length} registro${upcomingEvents.length > 1 ? 's' : ''}` : 'Nenhum evento futuro'}</span>
       </div>
-    </div>
-    
-    <div class="compensacao-summary" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; border-left: 4px solid #17a2b8;">
-      <h4 style="margin: 0 0 10px 0; color: #495057;">📊 Estatísticas Gerais do Calendário</h4>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 14px;">
-        <div style="text-align: center;">
-          <strong style="color: #007bff;">${todayEvents}</strong><br>
-          <small>Hoje</small>
-        </div>
-        <div style="text-align: center;">
-          <strong style="color: #17a2b8;">${futureEvents}</strong><br>
-          <small>Futuros</small>
-        </div>
-        <div style="text-align: center;">
-          <strong style="color: #6c757d;">${pastEvents}</strong><br>
-          <small>Passados</small>
-        </div>
-        <div style="text-align: center;">
-          <strong style="color: #28a745;">${events.length}</strong><br>
-          <small>Total Geral</small>
-        </div>
-      </div>
-    </div>
+      ${upcomingEvents.length ? `
+        <ul class="upcoming-list">
+          ${upcomingEvents.map(event => {
+            const { dayLabel, weekDay } = formatEventDate(event);
+            const employee = event.employeeName || 'Colaborador não informado';
+            const tipo = typeof getAbsenceTypeName === 'function' ? getAbsenceTypeName(event.absenceType) : (event.absenceType || 'Ausência');
+            return `
+              <li class="upcoming-item">
+                <div class="upcoming-date">
+                  <span class="weekday">${weekDay}</span>
+                  <span class="day">${dayLabel}</span>
+                </div>
+                <div class="upcoming-info">
+                  <strong>${employee}</strong>
+                  <small>${tipo}</small>
+                </div>
+              </li>
+            `;
+          }).join('')}
+        </ul>
+      ` : `
+        <div class="upcoming-empty">☀️ Sem ausências futuras cadastradas</div>
+      `}
+    </section>
   `;
   
   totalCompensacao.innerHTML = `
-    <div style="text-align: center;">
-      <strong>Total de ausencias Hoje: ${total} evento${total !== 1 ? 's' : ''}</strong><br>
-      <small style="opacity: 0.8;">💾 Dados baseados no calendário</small><br>
-      <small style="opacity: 0.6;">Última atualização: ${new Date().toLocaleString('pt-BR')}</small>
+    <div class="total-compensacao-wrapper">
+      <strong>Total de ausencias Hoje: ${total} evento${total !== 1 ? 's' : ''}</strong>
+      <span>Colaboradores impactados: ${uniqueEmployeesToday}</span>
+      <span>${tendenciaTexto}</span>
+      <small>💾 Dados baseados no calendário • Última atualização: ${new Date().toLocaleString('pt-BR')}</small>
     </div>
   `;
   
@@ -2281,83 +2433,122 @@ function getEmployeesFromData() {
 
 // Função para limpar indicadores antigos
 function clearAbsenceIndicators() {
-  const indicators = document.querySelectorAll('.absence-indicator');
+  const indicators = document.querySelectorAll('.absence-indicator[data-origin="table"]');
   indicators.forEach(indicator => indicator.remove());
 }
 
 // Função para adicionar indicadores visuais de ausências futuras
-function addAbsenceIndicators() {
-  // Limpar indicadores antigos
-  clearAbsenceIndicators();
-  
-  const events = calendarEvents || []; // Usar eventos do servidor
+function addAbsenceIndicators(totalAusentes) {
+  const headerIndicator = document.querySelector('.absence-indicator[data-role="header-indicator"]');
   const today = new Date();
-  
-  // Obter eventos futuros (próximos 7 dias)
-  const futureEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
-    const daysDiff = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
-    return daysDiff > 0 && daysDiff <= 7;
-  });
-  
-  if (futureEvents.length > 0) {
-    const tableRows = document.querySelectorAll('#tableBody13 tr');
-    
-    futureEvents.forEach(event => {
-      // Buscar a linha correspondente ao colaborador
-      for (let i = 0; i < tableRows.length; i++) {
-        const row = tableRows[i];
-        const matriculaCell = row.cells[0];
-        
-        if (matriculaCell && matriculaCell.textContent.trim() === event.employeeId) {
-          // Adicionar indicador visual na linha
-          const eventDate = new Date(event.date);
-          const daysDiff = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
-          
-          // Criar elemento de indicador
-          const indicator = document.createElement('div');
-          indicator.className = 'absence-indicator';
-          indicator.style.cssText = `
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            z-index: 10;
-            animation: pulseIndicator 2s infinite;
-          `;
-          indicator.title = `ausencia programada: ${getAbsenceTypeName(event.absenceType)} em ${eventDate.toLocaleDateString('pt-BR')} (${daysDiff} dia${daysDiff > 1 ? 's' : ''})`;
-          
-          // Adicionar ao primeiro cell (matrícula)
-          if (matriculaCell.style.position !== 'relative') {
-            matriculaCell.style.position = 'relative';
-          }
-          
-          matriculaCell.appendChild(indicator);
-          
-          break;
-        }
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Atualizar indicador do cabeçalho
+  if (headerIndicator) {
+    const valueNode = headerIndicator.querySelector('.indicator-value');
+    let totalHoje = typeof totalAusentes === 'number' ? totalAusentes : null;
+
+    if (totalHoje === null) {
+      if (Array.isArray(window.calendarEvents) && window.calendarEvents.length) {
+        totalHoje = window.calendarEvents.filter(event => {
+          const eventDateStr = new Date(event.date).toISOString().split('T')[0];
+          return eventDateStr === todayStr;
+        }).length;
+      } else {
+        const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
+        totalHoje = Array.from(selects).filter(select => select.value && select.value.trim() !== '').length;
       }
-    });
+    }
+
+    if (valueNode) {
+      valueNode.textContent = totalHoje !== null ? String(totalHoje) : '--';
+    }
   }
+
+  if (!Array.isArray(window.calendarEvents) || window.calendarEvents.length === 0) {
+    clearAbsenceIndicators();
+    return;
+  }
+
+  clearAbsenceIndicators();
+
+  const eventsByEmployee = window.calendarEvents.reduce((acc, event) => {
+    if (!event || !event.employeeId) return acc;
+    const eventDate = new Date(event.date);
+    const eventDateStr = eventDate.toISOString().split('T')[0];
+
+    // Considerar apenas eventos de hoje para frente
+    if (eventDateStr < todayStr) return acc;
+
+    const employeeId = String(event.employeeId);
+    if (!acc[employeeId]) acc[employeeId] = [];
+    acc[employeeId].push({
+      date: eventDate,
+      raw: event
+    });
+    return acc;
+  }, {});
+
+  const rows = document.querySelectorAll('#tableBody13 tr');
+
+  rows.forEach(row => {
+    const cells = row.cells;
+    if (!cells || cells.length === 0) return;
+
+    const matriculaCell = cells[0];
+    const matricula = (matriculaCell.textContent || '').trim();
+    if (!matricula || !eventsByEmployee[matricula]) return;
+
+    const futureEvents = eventsByEmployee[matricula]
+      .slice()
+      .sort((a, b) => a.date - b.date);
+
+    const nextEvent = futureEvents[0];
+    if (!nextEvent) return;
+
+    const indicator = document.createElement('span');
+    indicator.className = 'absence-indicator';
+    indicator.dataset.origin = 'table';
+    indicator.style.cssText = `
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 10;
+      display: inline-block;
+      pointer-events: none;
+    `;
+
+    const daysDiff = Math.max(0, Math.ceil((nextEvent.date - today) / (1000 * 60 * 60 * 24)));
+    const dayLabel = daysDiff === 0 ? 'hoje' : `${daysDiff} dia${daysDiff > 1 ? 's' : ''}`;
+    indicator.title = `Ausência programada: ${getAbsenceTypeName(nextEvent.raw.absenceType)} em ${nextEvent.date.toLocaleDateString('pt-BR')} (${dayLabel})`;
+
+    if (matriculaCell.style.position === '' || getComputedStyle(matriculaCell).position === 'static') {
+      matriculaCell.style.position = 'relative';
+    }
+
+    matriculaCell.appendChild(indicator);
+  });
 }
 
 // Função para adicionar estilos CSS do indicador
 function addIndicatorStyles() {
+  if (document.getElementById('absence-indicator-style')) return;
+
   const style = document.createElement('style');
+  style.id = 'absence-indicator-style';
   style.textContent = `
-    @keyframes pulseIndicator {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.7; }
-      100% { transform: scale(1); opacity: 1; }
+    .absence-indicator[data-origin="table"] {
+      transition: none;
     }
-    
-    .absence-indicator:hover {
-      transform: scale(1.3) !important;
-      cursor: pointer;
+
+    .absence-indicator[data-origin="table"]:hover {
+      transform: none !important;
+      cursor: default;
     }
   `;
   document.head.appendChild(style);
@@ -2370,60 +2561,6 @@ function updateTableAbsences() {
   
   // Adicionar indicadores para ausencias futuras
   addAbsenceIndicators();
-}
-
-// Função para mostrar notificação específica de ausencia aplicada
-function showAbsenceNotification(employeeName, absenceType) {
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    z-index: 1002;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    max-width: 300px;
-  `;
-  
-  const typeEmoji = {
-    'Folga': '🏖️',
-    'Ferias': '✈️',
-    'Atestado': '🏥',
-    'Falta': '❌'
-  };
-  
-  notification.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 20px;">${typeEmoji[absenceType] || '📋'}</span>
-      <div>
-        <strong>ausencia Aplicada!</strong><br>
-        <small>${employeeName}</small><br>
-        <small>Tipo: ${absenceType}</small>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(notification);
-  
-  // Mostrar notificação
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 100);
-  
-  // Remover notificação após 3 segundos
-  setTimeout(() => {
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      notification.remove();
-    }, 300);
-  }, 3000);
 }
 
 // Função para criar painel de resumo das ausencias
@@ -2656,32 +2793,6 @@ function startAbsenceUpdater() {
   console.log('   • gerarRelatorioAusencias() - Relatório detalhado');
   console.log('   • resetarAusenciasCalendario() - Reset completo');
   console.log('   • obterDadosAtualizados() - Status atual');
-}
-
-// Função para atualizar ausencias quando um evento é salvo
-function updateAbsencesOnEventSave(event) {
-  const eventDate = new Date(event.date);
-  const today = new Date();
-  
-  console.log(`Evento salvo: ${event.employeeName} - ${event.absenceType} para ${eventDate.toLocaleDateString('pt-BR')}`);
-  
-  // Se o evento é para hoje, atualizar a tabela imediatamente
-  if (eventDate.toDateString() === today.toDateString()) {
-    console.log('Evento é para hoje - atualizando tabela imediatamente');
-    refreshTableAbsencesFromCalendar();
-    
-    // Mostrar notificação específica
-    const absenceMap = {
-      'folga': 'Folga',
-      'ferias': 'Ferias',
-      'atestado': 'Atestado',
-      'falta': 'Falta'
-    };
-    const absenceValue = absenceMap[event.absenceType] || event.absenceType;
-    showAbsenceNotification(event.employeeName, absenceValue);
-  } else {
-    console.log(`Evento é para ${eventDate.toLocaleDateString('pt-BR')} - será aplicado automaticamente no dia`);
-  }
 }
 
 async function saveEvent() {

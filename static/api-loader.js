@@ -9,6 +9,9 @@
       console.__origLog = console.log.bind(console);
     }
     window.enableDebugLogs = function(){
+
+  // Expor a função principal de renderização para o restante da aplicação
+  window.renderApiTables = renderApiTables;
       if (console.__origLog) console.log = console.__origLog;
       console.__silenced = false;
       window.DEBUG = true;
@@ -63,41 +66,12 @@ function formatHorasTitulo(totalHoras) {
   return `${long} (total: ${totalFmt} h)`;
 }
 
-// Função para carregar dados da API
-async function carregarDadosAPI() {
-  try {
-    const response = await fetch('/tabelas', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await response.json();
-    
-    atualizarCards(data.dados_da_pagina);
-    atualizarTabelas(data);
-
-    if (data.mes_proximo) {
-      window.currentMesProximo = data.mes_proximo;
-      if (typeof window.syncMesOverrideSelect === 'function') {
-        window.syncMesOverrideSelect();
-      }
-    }
-    
-    console.log('Dados carregados da API com sucesso');
-  } catch (error) {
-    console.error('Erro ao carregar dados da API:', error);
+function renderApiTables(data) {
+  if (!data) {
+    console.warn('renderApiTables recebeu dados inválidos:', data);
+    return;
   }
-}
 
-function atualizarCards(dadosPagina) {
-  document.getElementById("Total_a_receber").innerText =
-    dadosPagina.Total_a_receber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  document.getElementById("Total_de_Abono").innerText =
-    dadosPagina.Total_abonado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  document.getElementById("Total_de_colaboradores_a_receber").innerText = dadosPagina.Total_de_colaboradores_a_receber;
-  document.getElementById("Total_de_colaboradores_com_abono").innerText = dadosPagina.Total_de_colaboradores_com_abono;
-}
-
-function atualizarTabelas(data) {
   console.log('Atualizando tabelas com dados da API:', data);
   console.log('Dados da tabela_3:', data.tabela_3);
   console.log('Tipo de data.tabela_3:', typeof data.tabela_3);
@@ -477,8 +451,7 @@ function atualizarTabela3(tabela3Data) {
       if (key === 'ausencia') {
         // Criar coluna de ausencia baseada exclusivamente no calendário
         const select = document.createElement("select");
-        select.className = "ausencia-select";
-        select.setAttribute('data-row-index', i);
+  select.className = "ausencia-select";
         
         // Opções do select
         const opcoes = [
@@ -566,7 +539,6 @@ function atualizarTabela3(tabela3Data) {
         
         // Event listener para mudanças manuais
         select.addEventListener("change", async function() {
-          const rowIndex = this.getAttribute('data-row-index');
           const matricula = registro.Matrícula || '';
           const colaborador = registro.Colaborador || '';
           
