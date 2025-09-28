@@ -1640,8 +1640,7 @@ const calendarMutationFunctions = new Set([
   'saveEvent',
   'addEventToSelectedDate',
   'addEventToCurrentDate',
-  'deleteEventFromView',
-  'refreshAllData'
+  'deleteEventFromView'
 ]);
 
 let scheduledCalendarRefresh = null;

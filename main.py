@@ -548,175 +548,250 @@ def atualizar_ausencia():
 def criar_interface_servidor():
     """Cria uma interface gráfica moderna para mostrar o status do servidor"""
     import time
-    
+
+    inicio_servidor = datetime.now().strftime('%d %b %Y • %H:%M')
+    url_dashboard = 'http://localhost:5000'
+
     def abrir_site():
         """Abre o site no navegador padrão com feedback visual"""
-        # Animação do botão
         abrir_btn.configure(text="🔄 Abrindo...")
-        root.update()
-        webbrowser.open('http://localhost:5000')
+        root.update_idletasks()
+        webbrowser.open(url_dashboard)
         root.after(1500, lambda: abrir_btn.configure(text="🌐 Abrir Dashboard"))
-    
+
     def fechar_aplicacao():
         """Fecha a aplicação com animação"""
-        status_label.configure(text="🔴 Encerrando servidor...", foreground="#FF6B6B")
-        root.update()
-        root.after(1000, lambda: [root.quit(), root.destroy()])
-    
+        status_badge.configure(text="OFFLINE", bg="#f97316")
+        status_dot.configure(foreground="#f97316")
+        status_label.configure(text="Servidor em processo de encerramento...", fg="#fca5a5")
+        fechar_btn.configure(text="⏳ Encerrando...")
+        root.update_idletasks()
+        root.after(1100, lambda: [root.quit(), root.destroy()])
+
     def animar_status():
-        """Anima o status online"""
-        cores = ["#4ECDC4", "#45B7B8", "#26C281", "#00D2D3"]
-        for i, cor in enumerate(cores):
-            root.after(i * 500, lambda c=cor: status_label.configure(foreground=c))
-        root.after(2000, animar_status)  # Repetir animação
-    
+        """Anima visualmente o indicador de status"""
+        pulse_cores = ["#22c55e", "#4ade80", "#2dd4bf", "#38bdf8"]
+        for i, cor in enumerate(pulse_cores):
+            root.after(i * 420, lambda c=cor: status_badge.configure(bg=c))
+            root.after(i * 420, lambda c=cor: status_dot.configure(foreground=c))
+        root.after(2000, animar_status)
+
     # Criar janela principal
     root = tk.Tk()
     root.title("Controle de Estoque - Gestão de Horas")
-    root.geometry("480x430")
+    root.geometry("560x1040")
     root.resizable(False, False)
-    root.configure(bg="#2C3E50")  # Fundo escuro elegante
-    
-    # Configurar estilo moderno
+    root.configure(bg="#0f172a")
+
+    # Estilos globais
     style = ttk.Style()
     style.theme_use('clam')
-    
-    # Configurar cores personalizadas
-    style.configure('Title.TLabel', 
-                   background="#2C3E50", 
-                   foreground="#ECF0F1", 
-                   font=("Segoe UI", 20, "bold"))
-    
-    style.configure('Subtitle.TLabel', 
-                   background="#2C3E50", 
-                   foreground="#BDC3C7", 
-                   font=("Segoe UI", 11))
-    
-    style.configure('Status.TLabel', 
-                   background="#2C3E50", 
-                   foreground="#4ECDC4", 
-                   font=("Segoe UI", 14, "bold"))
-    
-    style.configure('URL.TLabel', 
-                   background="#2C3E50", 
-                   foreground="#3498DB", 
-                   font=("Consolas", 11, "underline"))
-    
-    style.configure('Modern.TButton',
-                   font=("Segoe UI", 10, "bold"),
-                   padding=(20, 10))
-    
-    # Frame principal com padding
-    main_frame = tk.Frame(root, bg="#2C3E50", padx=30, pady=20)
-    main_frame.pack(fill="both", expand=True)
-    
-    # Header com logo e título
-    header_frame = tk.Frame(main_frame, bg="#2C3E50")
-    header_frame.pack(fill="x", pady=(0, 20))
-    
-    # Logo/Ícone grande
-    logo_label = tk.Label(header_frame, text="🗓️", font=("Segoe UI Emoji", 32), 
-                         bg="#2C3E50", fg="#ECF0F1")
-    logo_label.pack(side="left")
-    
-    # Títulos lado a lado
-    title_frame = tk.Frame(header_frame, bg="#2C3E50")
-    title_frame.pack(side="left", padx=(15, 0))
-    
-    titulo_label = tk.Label(title_frame, text="CDE - Controle de Estoque", 
-                           font=("Segoe UI", 18, "bold"), 
-                           bg="#2C3E50", fg="#ECF0F1")
-    titulo_label.pack(anchor="w")
-    
-    subtitulo_label = tk.Label(title_frame, text="Sistema de Controle Operacional", 
-                              font=("Segoe UI", 9), 
-                              bg="#2C3E50", fg="#95A5A6")
-    subtitulo_label.pack(anchor="w")
-    
-    # Linha separadora
-    separador = tk.Frame(main_frame, height=2, bg="#34495E")
-    separador.pack(fill="x", pady=(0, 25))
-    
-    # Container do status
-    status_frame = tk.Frame(main_frame, bg="#34495E", relief="raised", bd=1)
-    status_frame.pack(fill="x", pady=(0, 20), ipady=15)
-    
-    # Status do servidor com ícone animado
-    status_label = tk.Label(status_frame, text="🟢 SERVIDOR ONLINE", 
-                           font=("Segoe UI", 13, "bold"), 
-                           bg="#34495E", fg="#4ECDC4")
-    status_label.pack(pady=5)
-    
-    # URL clicável
-    url_frame = tk.Frame(status_frame, bg="#34495E")
-    url_frame.pack(pady=5)
-    
-    url_desc = tk.Label(url_frame, text="Endereço:", 
-                       font=("Segoe UI", 9), 
-                       bg="#34495E", fg="#95A5A6")
-    url_desc.pack()
-    
-    url_label = tk.Label(url_frame, text="http://localhost:5000", 
-                        font=("Consolas", 11, "bold"), 
-                        bg="#34495E", fg="#3498DB", 
-                        cursor="hand2")
-    url_label.pack()
-    url_label.bind("<Button-1>", lambda e: abrir_site())
-    
-    # Frame dos botões
-    button_frame = tk.Frame(main_frame, bg="#2C3E50")
-    button_frame.pack(fill="x", pady=(10, 0))
-    
-    # Botão principal - Abrir Dashboard
-    abrir_btn = tk.Button(button_frame, text="🌐 Abrir Dashboard", 
-                         command=abrir_site,
-                         font=("Segoe UI", 11, "bold"),
-                         bg="#3498DB", fg="white", 
-                         relief="flat", bd=0,
-                         padx=25, pady=12,
-                         cursor="hand2",
-                         activebackground="#2980B9",
-                         activeforeground="white")
-    abrir_btn.pack(side="left", padx=(0, 10))
-    
-    # Botão secundário - Fechar
-    fechar_btn = tk.Button(button_frame, text="❌ Fechar Servidor", 
-                          command=fechar_aplicacao,
-                          font=("Segoe UI", 11, "bold"),
-                          bg="#E74C3C", fg="white", 
-                          relief="flat", bd=0,
-                          padx=25, pady=12,
-                          cursor="hand2",
-                          activebackground="#C0392B",
-                          activeforeground="white")
+    style.configure('TFrame', background="#0f172a")
+    style.configure('TLabel', background="#0f172a", foreground="#e2e8f0", font=("Segoe UI", 11))
+
+    container = tk.Frame(root, bg="#0f172a", padx=28, pady=24)
+    container.pack(fill="both", expand=True)
+
+    # Cabeçalho com título e status
+    header_card = tk.Frame(
+        container,
+        bg="#111c3a",
+        highlightbackground="#1e2a44",
+        highlightthickness=1,
+        bd=0,
+        padx=24,
+        pady=22
+    )
+    header_card.pack(fill="x", pady=(0, 20))
+
+    header_top = tk.Frame(header_card, bg="#111c3a")
+    header_top.pack(fill="x")
+
+    titulo_label = tk.Label(
+        header_top,
+        text="CDE - Controle de Estoque",
+        font=("Segoe UI", 20, "bold"),
+        bg="#111c3a",
+        fg="#f8fafc"
+    )
+    titulo_label.pack(side="left", anchor="w")
+
+    status_badge = tk.Label(
+        header_top,
+        text="ONLINE",
+        font=("Segoe UI", 10, "bold"),
+        bg="#22c55e",
+        fg="#0f172a",
+        padx=14,
+        pady=4
+    )
+    status_badge.pack(side="right", anchor="e")
+
+    subtitulo_label = tk.Label(
+        header_card,
+        text="Servidor disponível e pronto para o dashboard operacional.",
+        font=("Segoe UI", 11),
+        bg="#111c3a",
+        fg="#93c5fd"
+    )
+    subtitulo_label.pack(anchor="w", pady=(14, 6))
+
+    status_row = tk.Frame(header_card, bg="#111c3a")
+    status_row.pack(fill="x")
+
+    status_dot = tk.Label(status_row, text="●", font=("Segoe UI", 16), bg="#111c3a", fg="#22c55e")
+    status_dot.pack(side="left")
+
+    status_label = tk.Label(
+        status_row,
+        text="Monitorando requisições em tempo real.",
+        font=("Segoe UI", 10),
+        bg="#111c3a",
+        fg="#cbd5f5"
+    )
+    status_label.pack(side="left", padx=(8, 0))
+
+    # Cartões de métricas básicas
+    stats_grid = tk.Frame(container, bg="#0f172a")
+    stats_grid.pack(fill="x")
+
+    stats = [
+        ("🟢", "Status atual", "Ativo e seguro"),
+        ("🕒", "Iniciado em", inicio_servidor),
+        ("🖥️", "Host", "0.0.0.0"),
+        ("🔌", "Porta", "5000")
+    ]
+
+    for index, (icon, title, value) in enumerate(stats):
+        card = tk.Frame(
+            stats_grid,
+            bg="#111c3a",
+            highlightbackground="#1e2a44",
+            highlightthickness=1,
+            bd=0,
+            padx=22,
+            pady=18
+        )
+        row = index // 2
+        col = index % 2
+        card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+        stats_grid.columnconfigure(col, weight=1)
+        stats_grid.rowconfigure(row, weight=1)
+
+        icon_label = tk.Label(card, text=icon, font=("Segoe UI Emoji", 26), bg="#111c3a", fg="#38bdf8")
+        icon_label.pack(anchor="w")
+
+        title_label = tk.Label(card, text=title, font=("Segoe UI", 11, "bold"), bg="#111c3a", fg="#e2e8f0")
+        title_label.pack(anchor="w", pady=(8, 0))
+
+        value_label = tk.Label(card, text=value, font=("Consolas", 11), bg="#111c3a", fg="#94a3b8")
+        value_label.pack(anchor="w")
+
+    separator = tk.Frame(container, bg="#1e293b", height=1)
+    separator.pack(fill="x", pady=18)
+
+    # Ações principais
+    actions_card = tk.Frame(
+        container,
+        bg="#111c3a",
+        highlightbackground="#1e2a44",
+        highlightthickness=1,
+        bd=0,
+        padx=26,
+        pady=24
+    )
+    actions_card.pack(fill="x")
+
+    actions_title = tk.Label(actions_card, text="Ações rápidas", font=("Segoe UI", 14, "bold"), bg="#111c3a", fg="#f8fafc")
+    actions_title.pack(anchor="w")
+
+    actions_desc = tk.Label(
+        actions_card,
+        text="Controle o dashboard sem sair desta janela. Abra a interface web ou finalize o servidor com segurança.",
+        font=("Segoe UI", 10),
+        bg="#111c3a",
+        fg="#9ca3af",
+        wraplength=440,
+        justify="left"
+    )
+    actions_desc.pack(anchor="w", pady=(6, 18))
+
+    button_frame = tk.Frame(actions_card, bg="#111c3a")
+    button_frame.pack(fill="x")
+
+    abrir_btn = tk.Button(
+        button_frame,
+        text="🌐 Abrir Dashboard",
+        command=abrir_site,
+        font=("Segoe UI", 12, "bold"),
+        bg="#38bdf8",
+        fg="#0f172a",
+        activebackground="#0ea5e9",
+        activeforeground="#0f172a",
+        relief="flat",
+        bd=0,
+        padx=26,
+        pady=12,
+        cursor="hand2"
+    )
+    abrir_btn.pack(side="left", padx=(0, 14))
+
+    fechar_btn = tk.Button(
+        button_frame,
+        text="❌ Fechar Servidor",
+        command=fechar_aplicacao,
+        font=("Segoe UI", 12, "bold"),
+        bg="#f87171",
+        fg="#0f172a",
+        activebackground="#ef4444",
+        activeforeground="#0f172a",
+        relief="flat",
+        bd=0,
+        padx=26,
+        pady=12,
+        cursor="hand2"
+    )
     fechar_btn.pack(side="right")
-    
+
     # Efeitos hover nos botões
-    def on_enter_abrir(e):
-        abrir_btn.configure(bg="#2980B9")
-    def on_leave_abrir(e):
-        abrir_btn.configure(bg="#3498DB")
-    
-    def on_enter_fechar(e):
-        fechar_btn.configure(bg="#C0392B")
-    def on_leave_fechar(e):
-        fechar_btn.configure(bg="#E74C3C")
-    
-    abrir_btn.bind("<Enter>", on_enter_abrir)
-    abrir_btn.bind("<Leave>", on_leave_abrir)
-    fechar_btn.bind("<Enter>", on_enter_fechar)
-    fechar_btn.bind("<Leave>", on_leave_fechar)
-    
-    # Rodapé com informações
-    footer_frame = tk.Frame(main_frame, bg="#2C3E50")
-    footer_frame.pack(fill="x", side="bottom", pady=(20, 0))
-    
-    footer_label = tk.Label(footer_frame, 
-                           text="💡 Clique na URL ou no botão para acessar o sistema", 
-                           font=("Segoe UI", 8), 
-                           bg="#2C3E50", fg="#7F8C8D")
-    footer_label.pack()
-    
+    def on_enter_btn(widget, color):
+        widget.configure(bg=color)
+
+    def on_leave_btn(widget, color):
+        widget.configure(bg=color)
+
+    abrir_btn.bind("<Enter>", lambda e: on_enter_btn(abrir_btn, "#0ea5e9"))
+    abrir_btn.bind("<Leave>", lambda e: on_leave_btn(abrir_btn, "#38bdf8"))
+    fechar_btn.bind("<Enter>", lambda e: on_enter_btn(fechar_btn, "#ef4444"))
+    fechar_btn.bind("<Leave>", lambda e: on_leave_btn(fechar_btn, "#f87171"))
+
+    # Barra de URL
+    link_section = tk.Frame(actions_card, bg="#111c3a")
+    link_section.pack(fill="x", pady=(20, 0))
+
+    url_caption = tk.Label(link_section, text="URL do dashboard", font=("Segoe UI", 9), bg="#111c3a", fg="#94a3b8")
+    url_caption.pack(anchor="w")
+
+    url_label = tk.Label(
+        link_section,
+        text=url_dashboard,
+        font=("Consolas", 11, "bold"),
+        bg="#111c3a",
+        fg="#38bdf8",
+        cursor="hand2"
+    )
+    url_label.pack(anchor="w", pady=(2, 0))
+    url_label.bind("<Button-1>", lambda e: abrir_site())
+
+    footer_label = tk.Label(
+        container,
+        text="💡 Dica: mantenha esta janela visível para acompanhar o status do servidor.",
+        font=("Segoe UI", 9),
+        bg="#0f172a",
+        fg="#64748b"
+    )
+    footer_label.pack(anchor="center", pady=(18, 0))
+
     # Centralizar janela na tela
     root.update_idletasks()
     width = root.winfo_width()
@@ -724,16 +799,16 @@ def criar_interface_servidor():
     x = (root.winfo_screenwidth() // 2) - (width // 2)
     y = (root.winfo_screenheight() // 2) - (height // 2)
     root.geometry(f'{width}x{height}+{x}+{y}')
-    
+
     # Iniciar animação do status
     root.after(1000, animar_status)
-    
+
     # Ícone da janela (se disponível)
     try:
         root.iconbitmap("favicon.ico")
-    except:
+    except Exception:
         pass
-    
+
     return root
 
 
