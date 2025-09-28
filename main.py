@@ -547,7 +547,6 @@ def atualizar_ausencia():
 
 def criar_interface_servidor():
     """Cria uma interface gráfica moderna para mostrar o status do servidor"""
-    import time
 
     inicio_servidor = datetime.now().strftime('%d %b %Y • %H:%M')
     url_dashboard = 'http://localhost:5000'
@@ -579,9 +578,29 @@ def criar_interface_servidor():
     # Criar janela principal
     root = tk.Tk()
     root.title("Controle de Estoque - Gestão de Horas")
-    root.geometry("560x1040")
+    root.geometry("560x940")
     root.resizable(False, False)
     root.configure(bg="#0f172a")
+
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    icon_path = os.path.join(base_dir, "favicon.ico")
+    icon_image = None
+
+    if os.path.exists(icon_path):
+        try:
+            root.iconbitmap(icon_path)
+        except Exception:
+            pass
+
+        try:
+            icon_image = tk.PhotoImage(file=icon_path)
+            root.iconphoto(False, icon_image)
+        except tk.TclError:
+            icon_image = None
 
     # Estilos globais
     style = ttk.Style()
@@ -607,8 +626,25 @@ def criar_interface_servidor():
     header_top = tk.Frame(header_card, bg="#111c3a")
     header_top.pack(fill="x")
 
+    title_container = tk.Frame(header_top, bg="#111c3a")
+    title_container.pack(side="left", anchor="w")
+
+    if icon_image:
+        icon_label = tk.Label(title_container, image=icon_image, bg="#111c3a")
+        icon_label.image = icon_image
+        icon_label.pack(side="left", padx=(0, 12))
+    else:
+        icon_label = tk.Label(
+            title_container,
+            text="📊",
+            font=("Segoe UI Emoji", 22),
+            bg="#111c3a",
+            fg="#38bdf8"
+        )
+        icon_label.pack(side="left", padx=(0, 12))
+
     titulo_label = tk.Label(
-        header_top,
+        title_container,
         text="CDE - Controle de Estoque",
         font=("Segoe UI", 20, "bold"),
         bg="#111c3a",
@@ -802,12 +838,6 @@ def criar_interface_servidor():
 
     # Iniciar animação do status
     root.after(1000, animar_status)
-
-    # Ícone da janela (se disponível)
-    try:
-        root.iconbitmap("favicon.ico")
-    except Exception:
-        pass
 
     return root
 
