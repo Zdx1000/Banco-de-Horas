@@ -8,11 +8,13 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><style>.clock-face{fill:%23ffffff;stroke:%23333;stroke-width:3}.hour-hand{animation:rotate-hour 43200s linear infinite;transform-origin:50px 50px}.minute-hand{animation:rotate-minute 3600s linear infinite;transform-origin:50px 50px}.second-hand{animation:rotate-second 60s linear infinite;transform-origin:50px 50px}@keyframes rotate-hour{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes rotate-minute{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes rotate-second{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.tick{stroke:%23333;stroke-width:1}</style></defs><circle cx=%2250%22 cy=%2250%22 r=%2245%22 class=%22clock-face%22/><g class=%22ticks%22><line x1=%2250%22 y1=%2210%22 x2=%2250%22 y2=%2218%22 class=%22tick%22/><line x1=%2290%22 y1=%2250%22 x2=%2282%22 y2=%2250%22 class=%22tick%22/><line x1=%2250%22 y1=%2290%22 x2=%2250%22 y2=%2282%22 class=%22tick%22/><line x1=%2210%22 y1=%2250%22 x2=%2218%22 y2=%2250%22 class=%22tick%22/></g><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2230%22 class=%22hour-hand%22 stroke=%22%23333%22 stroke-width=%223%22/><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2220%22 class=%22minute-hand%22 stroke=%22%23666%22 stroke-width=%222%22/><line x1=%2250%22 y1=%2250%22 x2=%2250%22 y2=%2215%22 class=%22second-hand%22 stroke=%22%23ff0000%22 stroke-width=%221%22/><circle cx=%2250%22 cy=%2250%22 r=%223%22 fill=%22%23333%22/></svg>">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
-  <link rel="stylesheet" href="static/style.css">
-  <link rel="stylesheet" href="static/dragon/dragon.css">
+  <link rel="preload" href="static/dist/css/app.min.css" as="style">
+  <link rel="stylesheet" href="static/dist/css/app.min.css">
+  <link rel="stylesheet" href="static/dist/css/dragon.min.css">
   
   <style>
     /* Bloquear conteúdo inicial até autenticação */
@@ -505,11 +507,11 @@
   </div>
   
   <!-- Carregar sistema de autenticação PRIMEIRO -->
-  <script src="static/auth.js"></script>
-  <script src="static/script.js"></script>
-  <script src="static/api-loader.js"></script>
-  <script src="static/dragon/dragon.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="static/dist/js/auth.min.js" defer></script>
+  <script src="static/dist/js/app.min.js" defer></script>
+  <script src="static/dist/js/api-loader.min.js" defer></script>
+  <script src="static/dist/js/dragon.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
   <!-- Rodapé -->
   <footer class="app-footer">

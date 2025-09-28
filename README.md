@@ -35,6 +35,14 @@ python -m venv .venv ; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
+3. (Opcional, mas recomendado) Instale as ferramentas de build do frontend:
+
+```powershell
+npm install
+```
+
+> ⚠️ Requer [Node.js 18+](https://nodejs.org/) instalado. Essa etapa é necessária apenas se for gerar os assets minificados do dashboard.
+
 ## Estrutura esperada
 
 ```
@@ -68,6 +76,24 @@ python .\main.py
 - Relatórios: as tabelas exibem saldos e indicadores por colaborador. A coluna do mês segue a regra 1–15 mês atual; >15 próximo mês.
 - Mês de referência: em "Alimentar Dados" ajuste o mês (jan–dez). A mudança recarrega o dashboard e atualiza todos os cálculos.
 - Exportar: em "Alimentar Dados" escolha "Exportar", selecione período inicial e final, e exporte para Excel os eventos do período.
+
+## Build do frontend (esbuild)
+
+O projeto utiliza o `esbuild` para gerar versões minificadas de CSS e JavaScript, armazenadas em `static/dist/`. Os arquivos já estão prontos no repositório, mas caso altere qualquer asset em `static/`, rode o build para atualizar a pasta `dist` (o Flask serve os arquivos minificados por padrão).
+
+- Build único:
+
+```powershell
+npm run build
+```
+
+- Build contínuo (observa alterações):
+
+```powershell
+npm run build:watch
+```
+
+Em ambos os casos, o manifest `static/dist/manifest.json` é atualizado para rastrear os arquivos gerados.
 
 ## Notas técnicas
 

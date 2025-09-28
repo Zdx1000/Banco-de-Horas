@@ -34,7 +34,7 @@ window.addEventListener(
 		pointer.y = e.clientY;
 		rad = 0;
 	},
-	false
+	{ passive: true }
 );
 
 const resize = () => {
@@ -43,7 +43,7 @@ const resize = () => {
 };
 
 let width, height;
-window.addEventListener("resize", () => resize(), false);
+window.addEventListener("resize", resize);
 resize();
 
 const mood = {
