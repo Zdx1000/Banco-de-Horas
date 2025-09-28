@@ -51,6 +51,15 @@ def calcular_mes_padrao():
 
     return f"{MESES_PT[mes_num - 1]}/{ano}"
 
+
+def resolver_caminho_recurso(*partes_relativas: str) -> str:
+    """Resolve caminhos tanto em execução normal quanto empacotada (PyInstaller)."""
+    if getattr(sys, 'frozen', False):
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))  # type: ignore[attr-defined]
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, *partes_relativas)
+
 class EventoAusencia(db.Model):
     __tablename__ = 'eventos_ausencia'
     
@@ -582,23 +591,30 @@ def criar_interface_servidor():
     root.resizable(False, False)
     root.configure(bg="#0f172a")
 
-    if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-
-    icon_path = os.path.join(base_dir, "favicon.ico")
-    icon_image = None
-
-    if os.path.exists(icon_path):
+    icon_bitmap_path = None
+    for candidato in ["favicon.ico", os.path.join("static", "favicon.ico")]:
+        caminho = resolver_caminho_recurso(candidato)
+        if not os.path.exists(caminho):
+            continue
         try:
-            root.iconbitmap(icon_path)
+            root.iconbitmap(caminho)
+            icon_bitmap_path = caminho
+            break
         except Exception:
-            pass
+            icon_bitmap_path = caminho
+            break
 
+    icon_image = None
+    for candidato in [os.path.join("static", "favicon.png"), "favicon.png", icon_bitmap_path]:
+        if not candidato:
+            continue
+        caminho = candidato if os.path.isabs(candidato) else resolver_caminho_recurso(candidato)
+        if not os.path.exists(caminho):
+            continue
         try:
-            icon_image = tk.PhotoImage(file=icon_path)
+            icon_image = tk.PhotoImage(file=caminho)
             root.iconphoto(False, icon_image)
+            break
         except tk.TclError:
             icon_image = None
 
