@@ -11,7 +11,6 @@ venv/
 
 # Build/output
 output/
-dist/
 build/
 Dados/
 instance/
