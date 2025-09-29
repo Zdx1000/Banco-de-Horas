@@ -577,24 +577,41 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
+  function changeCalendarMonth(offset) {
+    if (!Number.isInteger(offset) || offset === 0) return;
+
+    const currentDay = currentCalendarDate.getDate();
+    const updatedDate = new Date(currentCalendarDate);
+    updatedDate.setDate(1);
+    updatedDate.setMonth(updatedDate.getMonth() + offset);
+
+    const daysInMonth = new Date(updatedDate.getFullYear(), updatedDate.getMonth() + 1, 0).getDate();
+    updatedDate.setDate(Math.min(currentDay, daysInMonth));
+
+    currentCalendarDate = updatedDate;
+    renderCalendar();
+  }
+
+  function setupCalendarNavigation() {
     const prevMonthBtn = document.getElementById('prevMonth');
     const nextMonthBtn = document.getElementById('nextMonth');
 
-    if (prevMonthBtn) {
-      prevMonthBtn.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-        renderCalendar();
-      });
+    if (prevMonthBtn && !prevMonthBtn.dataset.bound) {
+      prevMonthBtn.addEventListener('click', () => changeCalendarMonth(-1));
+      prevMonthBtn.dataset.bound = 'true';
     }
 
-    if (nextMonthBtn) {
-      nextMonthBtn.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-        renderCalendar();
-      });
+    if (nextMonthBtn && !nextMonthBtn.dataset.bound) {
+      nextMonthBtn.addEventListener('click', () => changeCalendarMonth(1));
+      nextMonthBtn.dataset.bound = 'true';
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCalendarNavigation, { once: true });
+  } else {
+    setupCalendarNavigation();
+  }
 
   function openEventModal(date) {
     const modal = document.getElementById('eventModal');
