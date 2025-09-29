@@ -66,6 +66,17 @@ function formatHorasTitulo(totalHoras) {
   return `${long} (total: ${totalFmt} h)`;
 }
 
+const TABLE_ROW_STAGGER_MS = 45;
+const TABLE_ROW_MAX_DELAY_MS = 360;
+const TABLE_SORT_MAX_ANIMATED_ROWS = 80;
+
+function applyRowAnimation(row, index) {
+  if (!row) return;
+  row.classList.add('table-row-animate');
+  const delay = Math.min(index * TABLE_ROW_STAGGER_MS, TABLE_ROW_MAX_DELAY_MS);
+  row.style.setProperty('--row-delay', `${delay}ms`);
+}
+
 function renderApiTables(data) {
   if (!data) {
     console.warn('renderApiTables recebeu dados inválidos:', data);
@@ -126,13 +137,11 @@ function atualizarTabela1(topSaldo) {
     // Matrícula
     const tdMatricula = document.createElement("td");
     tdMatricula.innerText = topSaldo.Matricula[i];
-    tdMatricula.style.transition = "transform 0.2s";
     row.appendChild(tdMatricula);
     
     // Colaborador
     const tdColaborador = document.createElement("td");
     tdColaborador.innerText = topSaldo.Colaborador[i];
-    tdColaborador.style.transition = "transform 0.2s";
     if (topSaldo.Colaborador[i].length > 15) {
       tdColaborador.title = topSaldo.Colaborador[i];
     }
@@ -141,7 +150,6 @@ function atualizarTabela1(topSaldo) {
     // Cargo
     const tdCargo = document.createElement("td");
     tdCargo.innerText = topSaldo.Cargo[i];
-    tdCargo.style.transition = "transform 0.2s";
     if (topSaldo.Cargo[i].length > 15) {
       tdCargo.title = topSaldo.Cargo[i];
     }
@@ -152,19 +160,9 @@ function atualizarTabela1(topSaldo) {
   const totalHoras = topSaldo.SaldoAtual[i];
   tdHoras.innerText = formatHorasTexto(totalHoras, { style: 'compact' });
   tdHoras.title = formatHorasTitulo(totalHoras);
-    tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
-    // Adicionar efeitos hover
-    row.querySelectorAll('td').forEach(td => {
-      td.addEventListener("mouseenter", function() {
-        this.style.transform = "scale(1.05)";
-      });
-      td.addEventListener("mouseleave", function() {
-        this.style.transform = "scale(1)";
-      });
-    });
-    
+    applyRowAnimation(row, i);
     tableBody.appendChild(row);
   }
 }
@@ -201,13 +199,11 @@ function atualizarTabela2(topReceber) {
     // Matrícula
     const tdMatricula = document.createElement("td");
     tdMatricula.innerText = topReceber.Matricula[i];
-    tdMatricula.style.transition = "transform 0.2s";
     row.appendChild(tdMatricula);
     
     // Colaborador
     const tdColaborador = document.createElement("td");
     tdColaborador.innerText = topReceber.Colaborador[i];
-    tdColaborador.style.transition = "transform 0.2s";
     if (topReceber.Colaborador[i].length > 15) {
       tdColaborador.title = topReceber.Colaborador[i];
     }
@@ -216,7 +212,6 @@ function atualizarTabela2(topReceber) {
     // Cargo
     const tdCargo = document.createElement("td");
     tdCargo.innerText = topReceber.Cargo[i];
-    tdCargo.style.transition = "transform 0.2s";
     if (topReceber.Cargo[i].length > 15) {
       tdCargo.title = topReceber.Cargo[i];
     }
@@ -227,19 +222,9 @@ function atualizarTabela2(topReceber) {
   const totalHoras = topReceber.Horas_totais_a_receber[i];
   tdHoras.innerText = formatHorasTexto(totalHoras, { style: 'compact' });
   tdHoras.title = formatHorasTitulo(totalHoras);
-    tdHoras.style.transition = "transform 0.2s";
     row.appendChild(tdHoras);
     
-    // Adicionar efeitos hover
-    row.querySelectorAll('td').forEach(td => {
-      td.addEventListener("mouseenter", function() {
-        this.style.transform = "scale(1.05)";
-      });
-      td.addEventListener("mouseleave", function() {
-        this.style.transform = "scale(1)";
-      });
-    });
-    
+    applyRowAnimation(row, i);
     tableBody2.appendChild(row);
   }
 }
@@ -432,21 +417,12 @@ function atualizarTabela3(tabela3Data) {
   // Criar linhas de dados
   tabela3Data.forEach((registro, i) => {
     const row = document.createElement("tr");
-    row.style.transition = "background 0.3s";
     
     keys13.forEach((key, j) => {
       const td = document.createElement("td");
       td.style.padding = "8px";
       td.style.textAlign = "center";
       td.style.border = "1px solid #ddd";
-      td.style.transition = "transform 0.2s";
-      
-      td.addEventListener("mouseenter", () => {
-        td.style.transform = "scale(1.05)";
-      });
-      td.addEventListener("mouseleave", () => {
-        td.style.transform = "scale(1)";
-      });
       
       if (key === 'ausencia') {
         // Criar coluna de ausencia baseada exclusivamente no calendário
@@ -631,17 +607,25 @@ function atualizarTabela3(tabela3Data) {
       row.appendChild(td);
     });
     
+    applyRowAnimation(row, i);
     tableBody13.appendChild(row);
   });
   
   // Tornar as funções de ordenação e filtro globais para esta tabela
   window.sortTable13API = function(colIndex, key) {
-    const rows = Array.from(tableBody13.getElementsByTagName("tr"));
+    const rowsArray = Array.from(tableBody13.getElementsByTagName("tr"));
+    const totalRows = rowsArray.length;
+    const prefersReducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const rowsToAnimate = prefersReducedMotion ? [] : rowsArray.slice(0, TABLE_SORT_MAX_ANIMATED_ROWS);
     const rowPositions = new Map();
-    rows.forEach(row => {
-      rowPositions.set(row, row.getBoundingClientRect().top);
-    });
-    
+
+    if (rowsToAnimate.length) {
+      rowsToAnimate.forEach((row) => {
+        rowPositions.set(row, row.offsetTop);
+      });
+    }
+
     const parseLocaleNumber = (str) => {
       let normalized = str.replace(/[^0-9,.-]/g, "");
       normalized = normalized.replace(/\./g, "");
@@ -650,16 +634,14 @@ function atualizarTabela3(tabela3Data) {
     };
 
     const currentOrder = headerRow13.children[colIndex].dataset.sortOrder || "asc";
-    const rowsArray = Array.from(tableBody13.getElementsByTagName("tr"));
-    
+
     rowsArray.sort((a, b) => {
       let cellA, cellB;
-      
-      // Verificar se é a coluna de ausencia (que contém selects)
+
       if (key === "ausencia") {
         const selectA = a.children[colIndex].querySelector("select");
         const selectB = b.children[colIndex].querySelector("select");
-        
+
         if (selectA && selectB) {
           const optionA = selectA.options[selectA.selectedIndex];
           const optionB = selectB.options[selectB.selectedIndex];
@@ -673,32 +655,49 @@ function atualizarTabela3(tabela3Data) {
         cellA = a.children[colIndex].innerText.trim();
         cellB = b.children[colIndex].innerText.trim();
       }
-      
+
       const numA = parseLocaleNumber(cellA);
       const numB = parseLocaleNumber(cellB);
-      
+
       if (!isNaN(numA) && !isNaN(numB)) {
         return currentOrder === "asc" ? numA - numB : numB - numA;
-      } else {
-        return currentOrder === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
       }
+      return currentOrder === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
     });
-    
-    rowsArray.forEach(row => tableBody13.appendChild(row));
-    
-    rowsArray.forEach(row => {
-      const oldTop = rowPositions.get(row);
-      const newTop = row.getBoundingClientRect().top;
-      const deltaY = oldTop - newTop;
-      row.style.transition = "none";
-      row.style.transform = "translateY(" + deltaY + "px)";
-    });
-    
-    void tableBody13.offsetHeight;
-    
-    rowsArray.forEach(row => {
-      row.style.transition = "transform 0.5s ease";
-      row.style.transform = "translateY(0)";
+
+    const fragment = document.createDocumentFragment();
+    rowsArray.forEach((row) => fragment.appendChild(row));
+    tableBody13.appendChild(fragment);
+
+    if (!rowsToAnimate.length || totalRows === 0) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      rowsToAnimate.forEach((row) => {
+        if (!rowPositions.has(row)) return;
+        const oldTop = rowPositions.get(row);
+        const newTop = row.offsetTop;
+        const deltaY = (oldTop || 0) - newTop;
+
+        if (!deltaY) return;
+
+        row.style.transition = "none";
+        row.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+
+        requestAnimationFrame(() => {
+          const handleTransitionEnd = (event) => {
+            if (event.propertyName !== "transform") return;
+            row.style.transition = "";
+            row.style.transform = "";
+            row.removeEventListener("transitionend", handleTransitionEnd);
+          };
+
+          row.addEventListener("transitionend", handleTransitionEnd, { once: true });
+          row.style.transition = "transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1)";
+          row.style.transform = "translate3d(0, 0, 0)";
+        });
+      });
     });
   };
   

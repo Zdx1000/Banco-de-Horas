@@ -14,13 +14,11 @@ const jsEntries = [
   { source: 'static/auth.js', outfile: path.join(outDir, 'js', 'auth.min.js') },
   { source: 'static/script.js', outfile: path.join(outDir, 'js', 'app.min.js') },
   { source: 'static/api-loader.js', outfile: path.join(outDir, 'js', 'api-loader.min.js') },
-  { source: 'static/script_append.js', outfile: path.join(outDir, 'js', 'script-append.min.js') },
-  { source: 'static/dragon/dragon.js', outfile: path.join(outDir, 'js', 'dragon.min.js') }
+  { source: 'static/script_append.js', outfile: path.join(outDir, 'js', 'script-append.min.js') }
 ];
 
 const cssEntries = [
-  { source: 'static/style.css', outfile: path.join(outDir, 'css', 'app.min.css') },
-  { source: 'static/dragon/dragon.css', outfile: path.join(outDir, 'css', 'dragon.min.css') }
+  { source: 'static/style.css', outfile: path.join(outDir, 'css', 'app.min.css') }
 ];
 
 const manifestEntries = [...jsEntries, ...cssEntries].map((entry) => ({

@@ -3,7 +3,5 @@
   "static/script.js": "static/dist/js/app.min.js",
   "static/api-loader.js": "static/dist/js/api-loader.min.js",
   "static/script_append.js": "static/dist/js/script-append.min.js",
-  "static/dragon/dragon.js": "static/dist/js/dragon.min.js",
-  "static/style.css": "static/dist/css/app.min.css",
-  "static/dragon/dragon.css": "static/dist/css/dragon.min.css"
+  "static/style.css": "static/dist/css/app.min.css"
 }

@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 import sys
+import time
+import hashlib
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy # type: ignore
@@ -59,6 +61,31 @@ def resolver_caminho_recurso(*partes_relativas: str) -> str:
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_dir, *partes_relativas)
+
+
+def _resolver_intervalo_cache_padrao() -> int:
+    try:
+        valor = int(os.getenv("RELATORIO_CACHE_INTERVAL", "300"))
+    except (TypeError, ValueError):
+        valor = 300
+    return max(30, valor)
+
+
+RELATORIO_CACHE_LOCK = threading.Lock()
+RELATORIO_CACHE = {
+    "hash": None,
+    "arquivos": [],
+    "dados": None,
+    "df_top_10": None,
+    "df_top_10_receber": None,
+    "atualizado_em": None,
+    "mes": None,
+}
+
+RELATORIO_CACHE_INTERVAL = _resolver_intervalo_cache_padrao()
+RELATORIO_CACHE_MONITOR_LOCK = threading.Lock()
+RELATORIO_CACHE_MONITOR_STARTED = False
+
 
 class EventoAusencia(db.Model):
     __tablename__ = 'eventos_ausencia'
@@ -151,6 +178,160 @@ def salvar_evento_db(dados_evento):
 ## Função de compatibilidade removida: salvar_eventos(eventos)
 ## Motivo: não há mais chamadas no projeto; persistência é feita por evento via POST /eventos
 
+
+def listar_arquivos_relatorio(diretorio="Dados"):
+    """Retorna metadados dos arquivos de relatório ordenados para verificação de alterações."""
+    caminho_dados = resolver_caminho_recurso(diretorio)
+    if not os.path.isdir(caminho_dados):
+        return []
+
+    arquivos = []
+    for nome in os.listdir(caminho_dados):
+        if not (nome.startswith('Relatorio_Saldos') and nome.endswith(('.xlsx', '.xls'))):
+            continue
+        caminho_completo = os.path.join(caminho_dados, nome)
+        try:
+            stat_info = os.stat(caminho_completo)
+        except OSError:
+            continue
+        arquivos.append((nome, stat_info.st_mtime, stat_info.st_size))
+
+    arquivos.sort()
+    return arquivos
+
+
+def gerar_hash_arquivos(arquivos_info):
+    """Gera um hash determinístico com base em nome, mtime e tamanho dos arquivos."""
+    if not arquivos_info:
+        return None
+
+    digest = hashlib.sha256()
+    for nome, mtime, tamanho in arquivos_info:
+        digest.update(nome.encode('utf-8', errors='ignore'))
+        digest.update(str(mtime).encode('utf-8'))
+        digest.update(str(tamanho).encode('utf-8'))
+    return digest.hexdigest()
+
+
+def invalidar_cache_relatorio():
+    """Invalida o cache forçando recomputação no próximo acesso."""
+    with RELATORIO_CACHE_LOCK:
+        RELATORIO_CACHE.update({
+            "dados": None,
+            "df_top_10": None,
+            "df_top_10_receber": None,
+            "hash": None,
+            "arquivos": [],
+            "atualizado_em": None,
+            "mes": None,
+        })
+
+
+def atualizar_cache_relatorio(force=False, diretorio="Dados"):
+    """Atualiza o cache de relatórios caso haja alterações ou se forçado."""
+    arquivos_info = listar_arquivos_relatorio(diretorio)
+    arquivos_hash = gerar_hash_arquivos(arquivos_info)
+    mes_atual = proximo_mes()
+
+    with RELATORIO_CACHE_LOCK:
+        precisa_atualizar = (
+            force
+            or RELATORIO_CACHE.get("dados") is None
+            or RELATORIO_CACHE.get("hash") != arquivos_hash
+            or RELATORIO_CACHE.get("mes") != mes_atual
+        )
+
+    if not precisa_atualizar:
+        with RELATORIO_CACHE_LOCK:
+            snapshot = RELATORIO_CACHE.copy()
+            snapshot["arquivos"] = list(RELATORIO_CACHE.get("arquivos", []))
+        return snapshot
+
+    df_relatorio = load_data(diretorio)
+    relatorio = None
+    df_top_10 = None
+    df_top_10_receber = None
+
+    if not df_relatorio.empty:
+        try:
+            relatorio, df_top_10, df_top_10_receber = processar_dados(df_relatorio)
+        except Exception as exc:
+            print(f"Erro ao processar dados do relatório: {exc}")
+            relatorio = None
+            df_top_10 = None
+            df_top_10_receber = None
+
+    with RELATORIO_CACHE_LOCK:
+        RELATORIO_CACHE.update({
+            "hash": arquivos_hash,
+            "arquivos": arquivos_info,
+            "dados": relatorio,
+            "df_top_10": df_top_10,
+            "df_top_10_receber": df_top_10_receber,
+            "atualizado_em": datetime.now(),
+            "mes": mes_atual,
+        })
+        snapshot = RELATORIO_CACHE.copy()
+        snapshot["arquivos"] = list(RELATORIO_CACHE.get("arquivos", []))
+
+    return snapshot
+
+
+def obter_relatorio_processado(force=False, diretorio="Dados"):
+    """Retorna DataFrames processados utilizando o cache em memória."""
+    iniciar_monitoramento_cache()
+    snapshot = atualizar_cache_relatorio(force=force, diretorio=diretorio)
+
+    relatorio = snapshot.get("dados")
+    df_top_10 = snapshot.get("df_top_10")
+    df_top_10_receber = snapshot.get("df_top_10_receber")
+
+    relatorio_copia = relatorio.copy(deep=True) if isinstance(relatorio, pd.DataFrame) else None
+    df_top_10_copia = df_top_10.copy(deep=True) if isinstance(df_top_10, pd.DataFrame) else None
+    df_top_10_receber_copia = df_top_10_receber.copy(deep=True) if isinstance(df_top_10_receber, pd.DataFrame) else None
+
+    atualizado_em = snapshot.get("atualizado_em")
+    metadata = {
+        "atualizado_em": atualizado_em.isoformat() if isinstance(atualizado_em, datetime) else None,
+        "arquivos": [item[0] for item in snapshot.get("arquivos", [])],
+        "hash": snapshot.get("hash"),
+        "origem": "cache" if relatorio is not None else "vazio",
+        "mes": snapshot.get("mes"),
+    }
+
+    return relatorio_copia, df_top_10_copia, df_top_10_receber_copia, metadata
+
+
+def monitorar_relatorios(intervalo=None, diretorio="Dados"):
+    intervalo_monitor = intervalo or RELATORIO_CACHE_INTERVAL
+    try:
+        intervalo_monitor = max(30, int(intervalo_monitor))
+    except (TypeError, ValueError):
+        intervalo_monitor = 300
+
+    while True:
+        try:
+            atualizar_cache_relatorio(force=False, diretorio=diretorio)
+        except Exception as exc:
+            print(f"Erro no monitor de relatórios: {exc}")
+        time.sleep(intervalo_monitor)
+
+
+def iniciar_monitoramento_cache(intervalo=None):
+    global RELATORIO_CACHE_MONITOR_STARTED
+    with RELATORIO_CACHE_MONITOR_LOCK:
+        if RELATORIO_CACHE_MONITOR_STARTED:
+            return
+        thread_cache = threading.Thread(
+            target=monitorar_relatorios,
+            kwargs={"intervalo": intervalo or RELATORIO_CACHE_INTERVAL},
+            daemon=True,
+            name="RelatorioCacheMonitor",
+        )
+        thread_cache.start()
+        RELATORIO_CACHE_MONITOR_STARTED = True
+
+
 def proximo_mes():
     """Retorna o rótulo do mês/ano no formato "mmm/AAAA" considerando override do usuário."""
     override = obter_mes_override()
@@ -159,15 +340,7 @@ def proximo_mes():
     return calcular_mes_padrao()
 
 def load_data(diretorio="Dados"):
-    # Verifica se está rodando como executável PyInstaller
-    if getattr(sys, 'frozen', False):
-        # Se estiver rodando como executável, usa o diretório do executável
-        script_dir = os.path.dirname(sys.executable)
-    else:
-        # Se estiver rodando como script Python, usa o diretório do script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    full_path = os.path.join(script_dir, diretorio)
+    full_path = resolver_caminho_recurso(diretorio)
     
     # Verifica se o diretório existe
     if not os.path.exists(full_path):
@@ -313,8 +486,51 @@ def auth_status():
 @app.route('/tabelas')
 @requires_auth
 def tabelas():
+    force_refresh = request.args.get('refresh') == '1'
+    relatorio_df, df_top_10, df_top_10_receber, cache_meta = obter_relatorio_processado(force=force_refresh)
     mes = proximo_mes()
-    Relatorio, df_top_10, df_top_10_receber = processar_dados(load_data())
+
+    if not isinstance(relatorio_df, pd.DataFrame):
+        colunas_base = [
+            "Turno",
+            "Matrícula",
+            "Colaborador",
+            "Cargo",
+            "SaldoAtual",
+            mes,
+            "DIAS P/ COMPENSAR",
+            "Carga Horaria",
+            "SALARIO A RECEBER",
+            "SALARIO ABONADO",
+        ]
+        relatorio_df = pd.DataFrame(columns=colunas_base)
+    else:
+        relatorio_df = relatorio_df.copy(deep=True)
+
+    if mes not in relatorio_df.columns:
+        relatorio_df[mes] = 0.0
+
+    for coluna_padrao in ["DIAS P/ COMPENSAR", "Carga Horaria", "SALARIO A RECEBER", "SALARIO ABONADO"]:
+        if coluna_padrao not in relatorio_df.columns:
+            relatorio_df[coluna_padrao] = 0.0
+
+    colunas_numericas = ["SaldoAtual", mes, "DIAS P/ COMPENSAR", "Carga Horaria", "SALARIO A RECEBER", "SALARIO ABONADO"]
+    for coluna in colunas_numericas:
+        if coluna in relatorio_df.columns:
+            relatorio_df[coluna] = pd.to_numeric(relatorio_df[coluna], errors='coerce').fillna(0.0)
+
+    if not isinstance(df_top_10, pd.DataFrame):
+        df_top_10 = pd.DataFrame(columns=["Matrícula", "Colaborador", "Cargo", "SaldoAtual"])
+    else:
+        df_top_10 = df_top_10.copy(deep=True)
+
+    if not isinstance(df_top_10_receber, pd.DataFrame):
+        df_top_10_receber = pd.DataFrame(columns=["Matrícula", "Colaborador", "Cargo", mes])
+    else:
+        df_top_10_receber = df_top_10_receber.copy(deep=True)
+
+    if mes not in df_top_10_receber.columns:
+        df_top_10_receber[mes] = 0.0
 
     eventos = carregar_eventos()
     data_hoje = datetime.now().date().isoformat()
@@ -328,36 +544,41 @@ def tabelas():
                 ausencias_hoje[matricula] = tipo_ausencia
 
     top_saldo = {
-        'Matricula': df_top_10['Matrícula'].astype(str).tolist(),
-        'Colaborador': df_top_10['Colaborador'].astype(str).tolist(),
-        'Cargo': df_top_10['Cargo'].astype(str).tolist(),
-        'SaldoAtual': df_top_10['SaldoAtual'].tolist()
+        'Matricula': df_top_10['Matrícula'].astype(str).tolist() if 'Matrícula' in df_top_10 else [],
+        'Colaborador': df_top_10['Colaborador'].astype(str).tolist() if 'Colaborador' in df_top_10 else [],
+        'Cargo': df_top_10['Cargo'].astype(str).tolist() if 'Cargo' in df_top_10 else [],
+        'SaldoAtual': df_top_10['SaldoAtual'].tolist() if 'SaldoAtual' in df_top_10 else []
     }
 
     top_receber = {
-        'Matricula': df_top_10_receber['Matrícula'].astype(str).tolist(),
-        'Colaborador': df_top_10_receber['Colaborador'].astype(str).tolist(),
-        'Cargo': df_top_10_receber['Cargo'].astype(str).tolist(),
-        'Horas_totais_a_receber': df_top_10_receber[mes].tolist()
+        'Matricula': df_top_10_receber['Matrícula'].astype(str).tolist() if 'Matrícula' in df_top_10_receber else [],
+        'Colaborador': df_top_10_receber['Colaborador'].astype(str).tolist() if 'Colaborador' in df_top_10_receber else [],
+        'Cargo': df_top_10_receber['Cargo'].astype(str).tolist() if 'Cargo' in df_top_10_receber else [],
+        'Horas_totais_a_receber': df_top_10_receber[mes].tolist() if mes in df_top_10_receber else []
     }
 
     dados_page = {
-        'Total_a_receber': Relatorio["SALARIO A RECEBER"].round(2).sum(),
-        'Total_abonado': Relatorio['SALARIO ABONADO'].round(2).sum(),
-        'Total_de_colaboradores_a_receber': Relatorio[Relatorio[mes] > 0]['Colaborador'].nunique(),
-        'Total_de_colaboradores_com_abono': Relatorio[Relatorio['SALARIO ABONADO'] > 0]['Colaborador'].nunique(),
+        'Total_a_receber': relatorio_df["SALARIO A RECEBER"].round(2).sum() if "SALARIO A RECEBER" in relatorio_df else 0.0,
+        'Total_abonado': relatorio_df['SALARIO ABONADO'].round(2).sum() if 'SALARIO ABONADO' in relatorio_df else 0.0,
+        'Total_de_colaboradores_a_receber': relatorio_df[relatorio_df[mes] > 0]['Colaborador'].nunique() if mes in relatorio_df.columns else 0,
+        'Total_de_colaboradores_com_abono': relatorio_df[relatorio_df['SALARIO ABONADO'] > 0]['Colaborador'].nunique() if 'SALARIO ABONADO' in relatorio_df else 0,
+        'Cache_atualizado_em': cache_meta.get('atualizado_em'),
+        'Cache_origem': cache_meta.get('origem'),
     }
 
-    relatorio_geral = Relatorio.to_dict('records')
-
-    Relatorio["Horas_a_receber"] = Relatorio["DIAS P/ COMPENSAR"] * Relatorio["Carga Horaria"]
-    Relatorio["Horas_a_receber"] = Relatorio["Horas_a_receber"].round(2).astype(float)
+    if {'DIAS P/ COMPENSAR', 'Carga Horaria'}.issubset(relatorio_df.columns):
+        relatorio_df["Horas_a_receber"] = relatorio_df["DIAS P/ COMPENSAR"] * relatorio_df["Carga Horaria"]
+        relatorio_df["Horas_a_receber"] = relatorio_df["Horas_a_receber"].round(2).astype(float)
+    else:
+        relatorio_df["Horas_a_receber"] = 0
     
     # Tratar novamente valores NaN após cálculos
-    Relatorio = Relatorio.fillna('')
+    relatorio_df = relatorio_df.fillna('')
+
+    relatorio_geral = relatorio_df.to_dict('records')
     
     list_tabela_3 = ["Turno", "Matrícula", "Colaborador", "Cargo", "Horas_a_receber", "SALARIO A RECEBER", "SALARIO ABONADO"]
-    tabela_3_base = Relatorio[list_tabela_3].to_dict('records')
+    tabela_3_base = relatorio_df[list_tabela_3].to_dict('records') if set(list_tabela_3).issubset(relatorio_df.columns) else []
     
     tabela_3 = []
     for colaborador in tabela_3_base:
@@ -379,7 +600,7 @@ def tabelas():
             
         tabela_3.append(colaborador_info)
 
-    return jsonify({
+    resposta = {
         'top_saldo': top_saldo,
         'top_receber': top_receber,
         'relatorio_geral': relatorio_geral,
@@ -387,8 +608,11 @@ def tabelas():
         'dados_da_pagina': dados_page,
         'tabela_3': tabela_3,
         'data_atual': data_hoje,
-        'total_ausentes': len(ausencias_hoje)
-    })
+        'total_ausentes': len(ausencias_hoje),
+        'cache_info': cache_meta,
+    }
+
+    return jsonify(resposta)
 
 
 @app.route('/config/mes', methods=['POST'])
@@ -422,11 +646,13 @@ def configurar_mes_referencia():
 
             valor_normalizado = f"{mes_part}/{ano_int}"
             selecionar_mes_override(valor_normalizado)
+            invalidar_cache_relatorio()
 
             return jsonify({'sucesso': True, 'mes': valor_normalizado, 'override': True})
 
         # Resetar para cálculo automático
         selecionar_mes_override(None)
+        invalidar_cache_relatorio()
         mes_atual = proximo_mes()
         return jsonify({'sucesso': True, 'mes': mes_atual, 'override': False})
 
