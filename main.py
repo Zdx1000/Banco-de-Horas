@@ -457,8 +457,13 @@ def processar_dados(Relatorio_Saldos):
     return Relatorio_Saldos, df_top_10, df_top_10_receber
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        app.logger.debug(
+            "POST recebido na raiz; user-agent=%s", request.headers.get('User-Agent', 'desconhecido')
+        )
+        return ('', 204)
     return render_template('index.html')
 
 @app.route('/auth', methods=['POST'])
