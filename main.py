@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import sys
 import time
@@ -55,12 +56,50 @@ def calcular_mes_padrao():
 
 
 def resolver_caminho_recurso(*partes_relativas: str) -> str:
-    """Resolve caminhos tanto em execução normal quanto empacotada (PyInstaller)."""
+    """Resolve caminhos para recursos considerando execução empacotada ou não.
+
+    Prioriza, nessa ordem:
+      1. Override explícito via variável de ambiente BANCO_HORAS_BASEDIR;
+      2. Diretório onde o executável final está (quando congelado);
+      3. Diretório temporário do PyInstaller (_MEIPASS), quando presente;
+      4. Diretório do arquivo fonte (execução em modo desenvolvimento);
+      5. Diretório de trabalho atual como último recurso.
+    """
+
+    if partes_relativas and os.path.isabs(partes_relativas[0]):
+        return os.path.join(*partes_relativas)
+
+    candidatos = []
+
+    override_base = os.getenv('BANCO_HORAS_BASEDIR')
+    if override_base:
+        candidatos.append(os.path.join(override_base, *partes_relativas))
+
     if getattr(sys, 'frozen', False):
-        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))  # type: ignore[attr-defined]
+        exe_dir = os.path.dirname(sys.executable)
+        if exe_dir:
+            candidatos.append(os.path.join(exe_dir, *partes_relativas))
+
+        meipass = getattr(sys, '_MEIPASS', '')
+        if meipass:
+            candidatos.append(os.path.join(meipass, *partes_relativas))
     else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_dir, *partes_relativas)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        candidatos.append(os.path.join(script_dir, *partes_relativas))
+
+    candidatos.append(os.path.join(os.getcwd(), *partes_relativas))
+
+    for caminho in candidatos:
+        if caminho and os.path.exists(caminho):
+            return caminho
+
+    if candidatos:
+        return candidatos[0]
+
+    if partes_relativas:
+        return os.path.join(*partes_relativas)
+
+    return os.getcwd()
 
 
 def _resolver_intervalo_cache_padrao() -> int:
@@ -69,6 +108,50 @@ def _resolver_intervalo_cache_padrao() -> int:
     except (TypeError, ValueError):
         valor = 300
     return max(30, valor)
+
+
+def normalizar_para_json(valor):
+    """Converte tipos do numpy/pandas em equivalentes compatíveis com JSON."""
+    if isinstance(valor, dict):
+        return {chave: normalizar_para_json(subvalor) for chave, subvalor in valor.items()}
+
+    if isinstance(valor, list):
+        return [normalizar_para_json(item) for item in valor]
+
+    if isinstance(valor, tuple):
+        return [normalizar_para_json(item) for item in valor]
+
+    if isinstance(valor, (pd.Series, pd.Index)):
+        return [normalizar_para_json(item) for item in valor.tolist()]
+
+    if isinstance(valor, np.ndarray):
+        return [normalizar_para_json(item) for item in valor.tolist()]
+
+    if isinstance(valor, np.integer):
+        return int(valor)
+
+    if isinstance(valor, np.floating):
+        return float(valor)
+
+    if isinstance(valor, np.bool_):
+        return bool(valor)
+
+    if isinstance(valor, (pd.Timestamp, datetime)):
+        return valor.isoformat()
+
+    if isinstance(valor, pd.Timedelta):
+        return valor.total_seconds()
+
+    if valor is pd.NA:
+        return None
+
+    try:
+        if pd.isna(valor):
+            return None
+    except TypeError:
+        pass
+
+    return valor
 
 
 RELATORIO_CACHE_LOCK = threading.Lock()
@@ -617,7 +700,7 @@ def tabelas():
         'cache_info': cache_meta,
     }
 
-    return jsonify(resposta)
+    return jsonify(normalizar_para_json(resposta))
 
 
 @app.route('/config/mes', methods=['POST'])
