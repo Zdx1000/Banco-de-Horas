@@ -121,11 +121,11 @@
       </div>
 
   <div class="table-container">
-      <div class="table-wrapper">
-        <table id="relatorioTable">
+      <div class="table-wrapper table-wrapper--ranking">
+        <table id="relatorioTable" class="report-table report-table--ranking">
               <thead id="tableHead">
               <tr>
-                <th colspan="4" style="text-align: center; font-family: Arial; font-size: 18px; background-color: rgba(0, 22, 56, 0.301); color: white;">
+                <th colspan="4" class="report-table__title report-table__title--hours">
                 TOP 10 COLABORADORES COM MAIOR QUANTIDADE DE HORAS
                 </th>
               </tr>
@@ -134,11 +134,11 @@
             </table>
           </div>
           
-          <div class="table-wrapper">
-            <table id="relatorioTable2">
+          <div class="table-wrapper table-wrapper--ranking">
+            <table id="relatorioTable2" class="report-table report-table--ranking">
               <thead id="tableHead2">
               <tr>
-                <th colspan="4" style="text-align: center; font-family: Arial Black; font-size: 18px; background-color: rgba(0, 0, 100, 0.336); color: white;">
+                <th colspan="4" class="report-table__title report-table__title--expiring">
                 TOP 10 COLABORADORES COM MAIOR QUANTIDADE DE HORAS A VENCER
                 </th>
               </tr>
@@ -149,11 +149,11 @@
         </div>
 
       <div class="sub-chart card2">
-      <div class="table-wrapper">
-        <table id="relatorioTable2">
+      <div class="table-wrapper table-wrapper--general">
+        <table id="relatorioTableGeneral" class="report-table report-table--general">
           <thead>
             <tr>
-              <th colspan="8" style="text-align: center; font-family: Arial rgba(41, 43, 182, 0.432); font-size: 18px; background-color: rgba(0, 0, 100, 0.336); color: white; font-size: large; font-family: Arial Black;">TABELA GERAL CONTROLE DO BANCO DE HORAS CONTROLE DE ESTOQUE</th>
+              <th colspan="8" class="report-table__title report-table__title--general">TABELA GERAL CONTROLE DO BANCO DE HORAS CONTROLE DE ESTOQUE</th>
             </tr>
           </thead>
           <thead id="tableHead13"></thead>
@@ -267,7 +267,7 @@
   
   <!-- Modal de Exportação de Eventos -->
   <div id="exportModal" class="modal">
-    <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-content export">
       <div class="modal-header">
   <button type="button" class="close" onclick="closeExportModal()" aria-label="Fechar exportação de eventos">&times;</button>
         <h2>📤 Exportar Eventos</h2>
