@@ -2523,16 +2523,26 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
    11. RODAPÉ
    ========================================================================== */
 .app-footer {
-    background: var(--bg-surface);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 246, 249, 0.98));
     color: var(--text-secondary);
     margin-top: clamp(36px, 6vw, 64px);
-    padding: clamp(22px, 3vw, 36px) clamp(20px, 5vw, 44px);
-    border-top: 1px solid var(--border-light);
+    padding: clamp(20px, 2.6vw, 30px) clamp(20px, 4vw, 38px);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
     font-family: var(--font-sans);
     position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-xs);
 }
 
-.app-footer::before { content: none; }
+.app-footer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent 34%);
+    pointer-events: none;
+}
 
 .app-footer .footer-content {
     position: relative;
@@ -2545,48 +2555,71 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
     margin: 0 auto;
 }
 
-.footer-brand { display: flex; align-items: center; gap: 10px; min-width: 220px; }
+.footer-brand { display: flex; align-items: center; gap: 12px; min-width: 220px; }
 
 .footer-logo {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--accent-light);
-    color: var(--accent);
-    font-size: 1.2rem;
-    border: 1px solid var(--accent-border);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(241, 243, 246, 0.92);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    border: 1px solid var(--border-light);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
-.footer-title { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-.footer-subtitle { margin: 3px 0 0; font-size: 0.76rem; color: var(--text-tertiary); }
+.footer-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-primary);
+}
+
+.footer-subtitle {
+    margin: 3px 0 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
 
 .footer-links {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 10px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
 }
 
 .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
-    transition: color var(--duration-fast) var(--ease-smooth);
+    padding-bottom: 1px;
+    border-bottom: 1px solid transparent;
+    transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth);
 }
 
 .footer-links a:hover,
 .footer-links a:focus {
-    color: var(--accent);
+    color: var(--text-primary);
+    border-color: rgba(166, 174, 186, 0.45);
     outline: none;
 }
 
-.footer-divider { opacity: 0.3; }
+.footer-divider { opacity: 0.2; }
 
 .footer-meta {
+    position: relative;
+    max-width: 1200px;
     margin: 16px auto 0;
-    text-align: center;
+    padding-top: 12px;
+    border-top: 1px solid rgba(213, 218, 225, 0.7);
+    text-align: left;
     font-size: 0.72rem;
     letter-spacing: 0.04em;
     color: var(--text-muted);
