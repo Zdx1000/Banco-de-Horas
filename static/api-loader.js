@@ -66,16 +66,7 @@ function formatHorasTitulo(totalHoras) {
   return `${long} (total: ${totalFmt} h)`;
 }
 
-const TABLE_ROW_STAGGER_MS = 45;
-const TABLE_ROW_MAX_DELAY_MS = 360;
 const TABLE_SORT_MAX_ANIMATED_ROWS = 80;
-
-function applyRowAnimation(row, index) {
-  if (!row) return;
-  row.classList.add('table-row-animate');
-  const delay = Math.min(index * TABLE_ROW_STAGGER_MS, TABLE_ROW_MAX_DELAY_MS);
-  row.style.setProperty('--row-delay', `${delay}ms`);
-}
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -246,7 +237,6 @@ function atualizarTabela1(topSaldo) {
   tdHoras.title = formatHorasTitulo(totalHoras);
     row.appendChild(tdHoras);
     
-    applyRowAnimation(row, i);
     tableBody.appendChild(row);
   }
 
@@ -310,7 +300,6 @@ function atualizarTabela2(topReceber) {
   tdHoras.title = formatHorasTitulo(totalHoras);
     row.appendChild(tdHoras);
     
-    applyRowAnimation(row, i);
     tableBody2.appendChild(row);
   }
 
@@ -698,7 +687,6 @@ function atualizarTabela3(tabela3Data) {
       row.appendChild(td);
     });
     
-    applyRowAnimation(row, i);
     tableBody13.appendChild(row);
   });
   

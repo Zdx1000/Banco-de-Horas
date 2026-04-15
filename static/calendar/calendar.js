@@ -4,6 +4,55 @@
   }
   window.__calendarModuleLoaded = true;
 
+  function isDateOnlyString(value) {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+  }
+
+  function parseLocalDate(value) {
+    if (value instanceof Date) {
+      return new Date(
+        value.getFullYear(),
+        value.getMonth(),
+        value.getDate(),
+        value.getHours(),
+        value.getMinutes(),
+        value.getSeconds(),
+        value.getMilliseconds()
+      );
+    }
+
+    if (isDateOnlyString(value)) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day, 12, 0, 0, 0);
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function getLocalDateKey(value) {
+    const date = parseLocalDate(value);
+    if (!date) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function getStartOfLocalDay(value) {
+    const date = parseLocalDate(value);
+    if (!date) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  }
+
+  function getLocalDayDiff(targetDate, baseDate = new Date()) {
+    const target = getStartOfLocalDay(targetDate);
+    const base = getStartOfLocalDay(baseDate);
+    if (!target || !base) return 0;
+    return Math.round((target - base) / (1000 * 60 * 60 * 24));
+  }
+
   function openCalendarModal() {
     const modal = document.getElementById('calendarOptionsModal');
     syncMesOverrideSelect();
@@ -1015,7 +1064,7 @@
   function addAbsenceIndicators(totalAusentes) {
     const headerIndicator = document.querySelector('.absence-indicator[data-role="header-indicator"]');
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateKey(today);
 
     if (headerIndicator) {
       const valueNode = headerIndicator.querySelector('.indicator-value');
@@ -1024,8 +1073,7 @@
       if (totalHoje === null) {
         if (Array.isArray(window.calendarEvents) && window.calendarEvents.length) {
           totalHoje = window.calendarEvents.filter((event) => {
-            const eventDateStr = new Date(event.date).toISOString().split('T')[0];
-            return eventDateStr === todayStr;
+            return getLocalDateKey(event.date) === todayStr;
           }).length;
         } else {
           const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
@@ -1047,8 +1095,10 @@
 
     const eventsByEmployee = window.calendarEvents.reduce((acc, event) => {
       if (!event || !event.employeeId) return acc;
-      const eventDate = new Date(event.date);
-      const eventDateStr = eventDate.toISOString().split('T')[0];
+      const eventDate = parseLocalDate(event.date);
+      const eventDateStr = getLocalDateKey(event.date);
+
+      if (!eventDate || !eventDateStr) return acc;
 
       if (eventDateStr < todayStr) return acc;
 
@@ -1137,7 +1187,7 @@
 
   function updateAbsenceSummaryPanel() {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateKey(today);
 
     const events = calendarEvents || [];
 
@@ -1154,9 +1204,7 @@
     };
 
     const todayEvents = events.filter((event) => {
-      const eventDate = new Date(event.date);
-      const eventDateStr = eventDate.toISOString().split('T')[0];
-      return eventDateStr === todayStr;
+      return getLocalDateKey(event.date) === todayStr;
     });
 
     const absenceCount = {};
@@ -2145,7 +2193,7 @@
   function addAbsenceIndicators(totalAusentes) {
     const headerIndicator = document.querySelector('.absence-indicator[data-role="header-indicator"]');
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateKey(today);
 
     if (headerIndicator) {
       const valueNode = headerIndicator.querySelector('.indicator-value');
@@ -2154,8 +2202,7 @@
       if (totalHoje === null) {
         if (Array.isArray(window.calendarEvents) && window.calendarEvents.length) {
           totalHoje = window.calendarEvents.filter((event) => {
-            const eventDateStr = new Date(event.date).toISOString().split('T')[0];
-            return eventDateStr === todayStr;
+            return getLocalDateKey(event.date) === todayStr;
           }).length;
         } else {
           const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
@@ -2177,8 +2224,10 @@
 
     const eventsByEmployee = window.calendarEvents.reduce((acc, event) => {
       if (!event || !event.employeeId) return acc;
-      const eventDate = new Date(event.date);
-      const eventDateStr = eventDate.toISOString().split('T')[0];
+      const eventDate = parseLocalDate(event.date);
+      const eventDateStr = getLocalDateKey(event.date);
+
+      if (!eventDate || !eventDateStr) return acc;
 
       if (eventDateStr < todayStr) return acc;
 
@@ -2211,7 +2260,7 @@
       indicator.dataset.origin = 'table';
       indicator.dataset.type = String(nextEvent.raw.absenceType || 'outros').toLowerCase();
 
-      const daysDiff = Math.max(0, Math.ceil((nextEvent.date - today) / (1000 * 60 * 60 * 24)));
+      const daysDiff = Math.max(0, getLocalDayDiff(nextEvent.date, today));
       const dayLabel = daysDiff === 0 ? 'hoje' : `${daysDiff} dia${daysDiff > 1 ? 's' : ''}`;
       indicator.title = `Ausência programada: ${getAbsenceTypeName(nextEvent.raw.absenceType)} em ${nextEvent.date.toLocaleDateString('pt-BR')} (${dayLabel})`;
 
