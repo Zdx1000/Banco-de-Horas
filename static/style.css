@@ -132,6 +132,68 @@ header::after {
     box-shadow: 0 18px 35px rgba(6, 18, 60, 0.35);
 }
 
+.absence-indicator[data-origin="table"] {
+    position: absolute !important;
+    top: 4px;
+    right: 4px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 52px;
+    max-width: 64px;
+    margin: 0;
+    padding: 3px 4px;
+    border-radius: 5px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(241, 245, 249, 0.418);
+    backdrop-filter: none;
+    color: #1e293b;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    font-size: 0.52rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    cursor: help;
+    z-index: 2;
+}
+
+.absence-indicator[data-origin="table"][data-type="folga"] {
+    background: #ecfdf567;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.absence-indicator[data-origin="table"][data-type="ferias"] {
+    background: #fff7ed6b;
+    border-color: #fdba74;
+    color: #9a3412;
+}
+
+.absence-indicator[data-origin="table"][data-type="atestado"] {
+    background: #eef2ff6c;
+    border-color: #a5b4fc;
+    color: #3730a3;
+}
+
+.absence-indicator[data-origin="table"][data-type="falta"] {
+    background: #fef2f271;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.absence-indicator__label {
+    white-space: nowrap;
+}
+
+.absence-indicator__date {
+    font-size: 0.48rem;
+    font-weight: 600;
+    opacity: 0.82;
+    white-space: nowrap;
+}
+
 .indicator-dot {
     width: 14px;
     height: 14px;

@@ -1108,7 +1108,7 @@
 
       .absence-indicator[data-origin="table"]:hover {
         transform: none !important;
-        cursor: default;
+        cursor: help;
       }
     `;
     document.head.appendChild(style);
@@ -2202,8 +2202,7 @@
       const indicator = document.createElement('span');
       indicator.className = 'absence-indicator';
       indicator.dataset.origin = 'table';
-      indicator.style.cssText =
-        'position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(45deg, #FF6B6B, #FF8E8E); box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; display: inline-block; pointer-events: none;';
+      indicator.dataset.type = String(nextEvent.raw.absenceType || 'outros').toLowerCase();
 
       const daysDiff = Math.max(0, Math.ceil((nextEvent.date - today) / (1000 * 60 * 60 * 24)));
       const dayLabel = daysDiff === 0 ? 'hoje' : `${daysDiff} dia${daysDiff > 1 ? 's' : ''}`;
@@ -2212,6 +2211,25 @@
       if (matriculaCell.style.position === '' || getComputedStyle(matriculaCell).position === 'static') {
         matriculaCell.style.position = 'relative';
       }
+
+      const badgeLabels = {
+        folga: 'Folga',
+        ferias: 'Ferias',
+        atestado: 'Atest.',
+        falta: 'Falta'
+      };
+      const tooltipLabels = {
+        folga: 'Folga',
+        ferias: 'Ferias',
+        atestado: 'Atestado',
+        falta: 'Falta'
+      };
+      const absenceType = indicator.dataset.type;
+      const badgeLabel = badgeLabels[absenceType] || 'Ausencia';
+      const tooltipLabel = tooltipLabels[absenceType] || 'Ausencia';
+      const badgeDate = nextEvent.date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      indicator.title = `Ausencia programada: ${tooltipLabel} em ${nextEvent.date.toLocaleDateString('pt-BR')} (${dayLabel})`;
+      indicator.innerHTML = `<span class="absence-indicator__label">${badgeLabel}</span><span class="absence-indicator__date">${badgeDate}</span>`;
 
       matriculaCell.appendChild(indicator);
     });
