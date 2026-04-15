@@ -91,6 +91,67 @@ function loadExternalScript(src) {
   return promise;
 }
 
+function extrairNomeArquivo(contentDisposition, fallbackName) {
+  if (!contentDisposition) {
+    return fallbackName;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match && utf8Match[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (basicMatch && basicMatch[1]) {
+    return basicMatch[1];
+  }
+
+  return fallbackName;
+}
+
+function handleUnauthorizedAccess() {
+  if (!window.authManager) {
+    return;
+  }
+
+  window.authManager.isAuthenticated = false;
+  window.authManager.appInitialized = false;
+  window.authManager.blockApp();
+  window.authManager.showAuthModal();
+}
+
+async function downloadAuthenticatedFile(url, fallbackName) {
+  const response = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (response.status === 401) {
+    handleUnauthorizedAccess();
+    throw new Error('Sessão expirada');
+  }
+
+  if (!response.ok) {
+    let message = `Falha no download (status ${response.status})`;
+    try {
+      const data = await response.json();
+      message = data.erro || data.mensagem || message;
+    } catch (_) {}
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const filename = extrairNomeArquivo(response.headers.get('Content-Disposition'), fallbackName);
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
 let tabela3Data = null;
 let currentCalendarDate = new Date();
 let selectedDate = null;
@@ -227,6 +288,11 @@ async function carregarDadosAPI() {
     });
     console.log('📡 Resposta da API recebida:', response.status, response.statusText);
 
+    if (response.status === 401) {
+      handleUnauthorizedAccess();
+      return;
+    }
+
     if (!response.ok) {
       throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
     }
@@ -264,6 +330,10 @@ async function carregarDadosAPI() {
 
     atualizarCards(data.dados_da_pagina);
     atualizarTabelas(data);
+
+    if (error && error.message === 'Sessão expirada') {
+      return;
+    }
 
     setTimeout(() => {
       if (typeof renderCalendar === 'function') {
@@ -474,6 +544,18 @@ function resetarDadosSalvos() {
 }
 
 function exportarDadosAtuais() {
+  const filename = `banco_horas_dados_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  downloadAuthenticatedFile('/tabelas/exportar', filename)
+    .then(() => {
+      console.log('âœ… Dados exportados com sucesso:', filename);
+    })
+    .catch((error) => {
+      console.error('âŒ Erro ao exportar dados:', error);
+      alert(error.message || 'Erro ao exportar dados. Verifique o console para mais detalhes.');
+    });
+  return;
+
   try {
     fetch('/tabelas', {
       method: 'GET',
@@ -637,6 +719,57 @@ function calcularCompensacao() {
 }
 
 function refreshTableAbsencesFromCalendar() {
+  const dadosAtuaisTabela = getTabela3Data();
+  const hoje = new Date();
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const eventosHoje = (calendarEvents || []).filter((event) => {
+    const dataEvento = new Date(event.date);
+    return dataEvento.toISOString().split('T')[0] === hojeStr;
+  });
+
+  if (window.DEBUG) console.log(`🔎 ${eventosHoje.length} eventos encontrados para hoje (${hojeStr})`);
+
+  const ausenciaSelectsCorrigidos = document.querySelectorAll('.ausencia-select');
+  ausenciaSelectsCorrigidos.forEach((select) => {
+    const rowIndex = Number(select.dataset.rowIndex || -1);
+    const registroLinha = dadosAtuaisTabela && dadosAtuaisTabela[rowIndex] ? dadosAtuaisTabela[rowIndex] : null;
+    const matricula = (select.dataset.matricula || registroLinha?.['Matrícula'] || '').toString();
+    const colaborador = registroLinha?.Colaborador || '';
+
+    const event = eventosHoje.find((eventoAtual) => {
+      const eventEmployeeId = (eventoAtual.employeeId || '').toString();
+      return eventEmployeeId === matricula;
+    });
+
+    if (!event) {
+      if (select.value !== '') {
+        select.value = '';
+      }
+      select.classList.remove('folga', 'falta', 'ferias', 'atestado');
+      return;
+    }
+
+    const absenceMap = {
+      folga: 'Folga',
+      ferias: 'Ferias',
+      atestado: 'Atestado',
+      falta: 'Falta',
+    };
+
+    const absenceValue = absenceMap[event.absenceType] || event.absenceType;
+    select.value = absenceValue;
+    select.classList.remove('folga', 'falta', 'ferias', 'atestado');
+    if (absenceValue) {
+      select.classList.add(absenceValue.toLowerCase());
+    }
+
+    if (window.DEBUG) {
+      console.log(`✅ Ausência atualizada: ${matricula} - ${colaborador} → ${absenceValue}`);
+    }
+  });
+
+  return;
+
   if (window.DEBUG) console.log('🔄 Atualizando tabela com eventos do calendário...');
 
   const dadosTabela3 = getTabela3Data();
@@ -1310,13 +1443,15 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   }
 
-  try {
-    await carregarDadosAPI();
-    if (typeof renderCalendar === 'function') {
-      setTimeout(() => renderCalendar(), 200);
+  if (window.authManager && window.authManager.isAuthenticated) {
+    try {
+      await carregarDadosAPI();
+      if (typeof renderCalendar === 'function') {
+        setTimeout(() => renderCalendar(), 200);
+      }
+    } catch (error) {
+      console.error('Erro durante carregamento inicial da API:', error);
     }
-  } catch (error) {
-    console.error('Erro durante carregamento inicial da API:', error);
   }
 
   setTimeout(() => {
@@ -1328,6 +1463,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   window.verificarDadosCarregados = verificarDadosCarregados;
   window.carregarDadosAPI = carregarDadosAPI;
   window.getTabela3Data = getTabela3Data;
+  window.downloadAuthenticatedFile = downloadAuthenticatedFile;
   window.resetarDadosSalvos = resetarDadosSalvos;
   window.exportarDadosAtuais = exportarDadosAtuais;
   window.resetarAusencias = resetarAusencias;
@@ -1610,6 +1746,199 @@ function initializeTableAbsenceSync() {
     }
     refreshTableAbsencesFromCalendar();
     atualizarModalCompensacao();
+  });
+}
+
+async function carregarDadosAPI() {
+  try {
+    console.log('Iniciando carregamento dos dados da API...');
+    const response = await fetch('/tabelas', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    console.log('Resposta da API recebida:', response.status, response.statusText);
+
+    if (response.status === 401) {
+      handleUnauthorizedAccess();
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Dados completos da API:', data);
+    console.log('Estrutura da resposta:', Object.keys(data));
+
+    if (data.mes_proximo) {
+      window.currentMesProximo = data.mes_proximo;
+      syncMesOverrideSelect();
+    }
+
+    if (data.tabela_3) {
+      tabela3Data = data.tabela_3;
+      console.log('Dados da tabela_3 armazenados globalmente:', tabela3Data);
+    } else {
+      console.warn('tabela_3 não encontrada na resposta da API');
+      tabela3Data = null;
+    }
+
+    console.log('Iniciando carregamento de eventos...');
+    await loadEventsFromServer();
+    console.log('Carregamento de eventos concluído');
+
+    atualizarCards(data.dados_da_pagina);
+    atualizarTabelas(data);
+
+    setTimeout(() => {
+      if (typeof renderCalendar === 'function') {
+        renderCalendar();
+      }
+    }, 100);
+
+    setTimeout(() => {
+      if (data.tabela_3) {
+        atualizarAusenciasNaTabela(data.tabela_3);
+      }
+    }, 500);
+
+    console.log('Dados carregados da API com sucesso');
+  } catch (error) {
+    console.error('Erro ao carregar dados da API:', error);
+
+    if (error && error.message === 'Sessão expirada') {
+      return;
+    }
+
+    console.log('Tentando novamente em 3 segundos...');
+    setTimeout(() => {
+      console.log('Segunda tentativa de carregamento...');
+      carregarDadosAPI();
+    }, 3000);
+  }
+}
+
+async function loadEventsFromServer() {
+  try {
+    if (window.DEBUG) {
+      console.log('Carregando eventos do servidor...');
+      console.log('Fazendo requisição para: /eventos');
+    }
+
+    const response = await fetch('/eventos', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (window.DEBUG) {
+      console.log('Status da resposta:', response.status, response.statusText);
+    }
+
+    if (response.status === 401) {
+      handleUnauthorizedAccess();
+      return [];
+    }
+
+    const data = await response.json();
+    if (window.DEBUG) {
+      console.log('Dados recebidos do servidor:', data);
+    }
+
+    if (!response.ok) {
+      console.error('Erro ao carregar eventos:', data.erro || 'Erro desconhecido');
+      return [];
+    }
+
+    calendarEvents = data.eventos || [];
+    window.calendarEvents = calendarEvents;
+
+    if (window.DEBUG) {
+      console.log(`${calendarEvents.length} eventos carregados do servidor`);
+    }
+
+    window.dispatchEvent(new CustomEvent('calendarEventsReloaded', { detail: calendarEvents }));
+    return calendarEvents;
+  } catch (error) {
+    console.error('Erro na requisição de eventos:', error);
+
+    if (error && error.message === 'Sessão expirada') {
+      return [];
+    }
+
+    return [];
+  }
+}
+
+function atualizarAusenciasNaTabela(dadosTabela3) {
+  console.log('Atualizando ausências na tabela visual...');
+
+  const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
+  selects.forEach((select) => {
+    const rowIndex = Number(select.dataset.rowIndex || -1);
+    const colaborador = Array.isArray(dadosTabela3) && rowIndex >= 0 ? dadosTabela3[rowIndex] : null;
+
+    if (!colaborador) {
+      select.value = '';
+      return;
+    }
+
+    if (colaborador.estaAusente && colaborador.statusAusencia) {
+      const tipoMap = {
+        folga: 'Folga',
+        ferias: 'Ferias',
+        atestado: 'Atestado',
+        falta: 'Falta',
+      };
+
+      const valorSelect = tipoMap[colaborador.statusAusencia] || colaborador.statusAusencia;
+      select.value = valorSelect;
+    } else {
+      select.value = '';
+    }
+  });
+
+  console.log('Atualização de ausências na tabela concluída');
+}
+
+function refreshTableAbsencesFromCalendar() {
+  const dadosAtuaisTabela = getTabela3Data();
+  const hoje = new Date();
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const eventosHoje = (calendarEvents || []).filter((event) => {
+    const dataEvento = new Date(event.date);
+    return dataEvento.toISOString().split('T')[0] === hojeStr;
+  });
+
+  const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
+  selects.forEach((select) => {
+    const rowIndex = Number(select.dataset.rowIndex || -1);
+    const registroLinha = Array.isArray(dadosAtuaisTabela) && rowIndex >= 0 ? dadosAtuaisTabela[rowIndex] : null;
+    const matricula = String(registroLinha?.['Matrícula'] || select.dataset.matricula || '');
+
+    const event = eventosHoje.find((eventoAtual) => String(eventoAtual.employeeId || '') === matricula);
+    const absenceMap = {
+      folga: 'Folga',
+      ferias: 'Ferias',
+      atestado: 'Atestado',
+      falta: 'Falta',
+    };
+
+    select.classList.remove('folga', 'falta', 'ferias', 'atestado');
+
+    if (!event) {
+      if (select.value !== '') {
+        select.value = '';
+      }
+      return;
+    }
+
+    const absenceValue = absenceMap[event.absenceType] || event.absenceType;
+    select.value = absenceValue;
+
+    if (absenceValue) {
+      select.classList.add(String(absenceValue).toLowerCase());
+    }
   });
 }
 

@@ -420,6 +420,7 @@ function atualizarTabela3(tabela3Data) {
     
     keys13.forEach((key, j) => {
       const td = document.createElement("td");
+      td.dataset.columnKey = key;
       td.style.padding = "8px";
       td.style.textAlign = "center";
       td.style.border = "1px solid #ddd";
@@ -428,6 +429,8 @@ function atualizarTabela3(tabela3Data) {
         // Criar coluna de ausencia baseada exclusivamente no calendário
         const select = document.createElement("select");
   select.className = "ausencia-select";
+        select.dataset.rowIndex = String(i);
+        select.dataset.matricula = String(registro['Matrícula'] || "");
         
         // Opções do select
         const opcoes = [

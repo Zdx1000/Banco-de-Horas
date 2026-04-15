@@ -6,20 +6,21 @@ Aplicação web (Flask) com interface de calendário e relatórios para gestão 
 
 - Backend: Flask + SQLAlchemy (SQLite) e Pandas para processamento dos relatórios.
 - Frontend: HTML estático (`index.html`) e JS em `static/`.
-- Armazenamento de eventos de ausência no arquivo SQLite `eventos_ausencia.db` (criado automaticamente).
+- Armazenamento de eventos de ausência no arquivo SQLite `instance/eventos_ausencia.db` (criado automaticamente).
 - Importa relatórios a partir de planilhas em `Dados/Relatorio_Saldos*.xlsx` ou `.xls`.
 - Regras de negócio:
   - Um evento por pessoa por dia (evita conflitos).
   - Criação multi-dias para Atestado/Folga (1 a 30 dias) e Férias.
   - Regra do mês/quinzena (exibição de coluna): dia 1–15 usa mês atual; dia >15 usa próximo mês.
   - Otimização de contagem de eventos O(E+R) para performance.
-- Exportação: botão "Exportar" na UI permite exportar eventos filtrados por período para Excel.
+- Exportação: os botões da UI geram arquivos Excel no backend para relatórios e eventos filtrados por período.
 
 ## Requisitos
 
 - Windows 10/11
 - Python 3.11 ou 3.12
-- Acesso à internet somente para abrir no navegador local (não é necessário baixar libs em runtime)
+- Execução local em `http://localhost:5000`
+- Acesso à internet não é necessário em runtime; os assets usados pelo dashboard ficam no próprio projeto.
 
 ## Instalação (PowerShell)
 
@@ -35,13 +36,13 @@ python -m venv .venv ; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-3. (Opcional, mas recomendado) Instale as ferramentas de build do frontend:
+3. (Opcional) Instale as ferramentas de build do frontend:
 
 ```powershell
 npm install
 ```
 
-> ⚠️ Requer [Node.js 18+](https://nodejs.org/) instalado. Essa etapa é necessária apenas se for gerar os assets minificados do dashboard.
+> ⚠️ Requer [Node.js 18+](https://nodejs.org/) instalado. Essa etapa só é necessária se você quiser gerar ou atualizar a pasta `static/dist/`.
 
 ## Estrutura esperada
 
@@ -69,6 +70,8 @@ python .\main.py
 - A interface abrirá uma janela com o status do servidor e um botão "Abrir Dashboard".
 - O dashboard ficará disponível em: http://localhost:5000
 - Autenticação: a senha de administrador padrão é `martins@01`.
+- A aplicação foi ajustada para uso local via `127.0.0.1`/`localhost`.
+- Opcionalmente, é possível sobrescrever a senha e a secret key com `BANCO_HORAS_ADMIN_PASSWORD` e `BANCO_HORAS_SECRET_KEY`.
 
 ## Uso rápido
 
@@ -76,10 +79,11 @@ python .\main.py
 - Relatórios: as tabelas exibem saldos e indicadores por colaborador. A coluna do mês segue a regra 1–15 mês atual; >15 próximo mês.
 - Mês de referência: em "Alimentar Dados" ajuste o mês (jan–dez). A mudança recarrega o dashboard e atualiza todos os cálculos.
 - Exportar: em "Alimentar Dados" escolha "Exportar", selecione período inicial e final, e exporte para Excel os eventos do período.
+- Exportar dados: no painel de compensação, o botão "Exportar Dados" baixa um Excel completo com os relatórios atuais.
 
 ## Build do frontend (esbuild)
 
-O projeto utiliza o `esbuild` para gerar versões minificadas de CSS e JavaScript, armazenadas em `static/dist/`. Os arquivos já estão prontos no repositório, mas caso altere qualquer asset em `static/`, rode o build para atualizar a pasta `dist` (o Flask serve os arquivos minificados por padrão).
+O projeto utiliza o `esbuild` para gerar versões minificadas de CSS e JavaScript, armazenadas em `static/dist/`. O dashboard pode rodar diretamente com os arquivos fonte em `static/`, então o build é opcional e útil principalmente para empacotamento ou distribuição controlada.
 
 - Build único:
 
@@ -97,10 +101,10 @@ Em ambos os casos, o manifest `static/dist/manifest.json` é atualizado para ras
 
 ## Notas técnicas
 
-- Banco de dados: SQLite via SQLAlchemy. Tabela `eventos_ausencia` é criada automaticamente.
+- Banco de dados: SQLite via SQLAlchemy. A tabela `eventos_ausencia` é criada automaticamente com restrição de unicidade por `employee_id + date`.
 - Modelo `EventoAusencia` preserva o formato JSON esperado no frontend (serialize()).
 - Processamento de dados: `processar_dados()` usa Pandas e evita `NaN` no JSON retornado.
-- Desempenho: contagem de eventos por quinzena é feita por pré-agregação para reduzir custo.
+- Desempenho: contagem de eventos por quinzena considera a data real atual com filtro correto de mês e ano.
 - Logs: `console.log` no frontend está silenciado por padrão; erros continuam visíveis.
 
 ## Empacotamento opcional (PyInstaller)

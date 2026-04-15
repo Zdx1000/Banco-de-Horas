@@ -4,21 +4,56 @@ import os
 import sys
 import time
 import hashlib
+import secrets
+from io import BytesIO
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_file
 from flask_sqlalchemy import SQLAlchemy # type: ignore
 from functools import wraps
 import tkinter as tk
 from tkinter import ttk
 import webbrowser
 import threading
+from openpyxl.utils import get_column_letter
+from sqlalchemy import text as sql_text
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__, template_folder='.')
-app.secret_key = 'sua_chave_secreta_super_segura_aqui_2024!'
+
+
+def carregar_ou_criar_secret_key() -> str:
+    secret_override = os.getenv('BANCO_HORAS_SECRET_KEY')
+    if secret_override:
+        return secret_override
+
+    os.makedirs(app.instance_path, exist_ok=True)
+    secret_path = os.path.join(app.instance_path, 'flask_secret.key')
+
+    try:
+        if os.path.exists(secret_path):
+            with open(secret_path, 'r', encoding='utf-8') as arquivo_secret:
+                secret = arquivo_secret.read().strip()
+                if secret:
+                    return secret
+
+        secret = secrets.token_hex(32)
+        with open(secret_path, 'w', encoding='utf-8') as arquivo_secret:
+            arquivo_secret.write(secret)
+        return secret
+    except OSError:
+        return secrets.token_hex(32)
+
+
+app.secret_key = carregar_ou_criar_secret_key()
 app.permanent_session_lifetime = timedelta(days=7)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
 
 # Configuração do SQLite
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///eventos_ausencia.db'
+os.makedirs(app.instance_path, exist_ok=True)
+default_db_path = os.path.join(app.instance_path, 'eventos_ausencia.db').replace(os.sep, '/')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('BANCO_HORAS_DATABASE_URI', f'sqlite:///{default_db_path}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -172,6 +207,9 @@ RELATORIO_CACHE_MONITOR_STARTED = False
 
 class EventoAusencia(db.Model):
     __tablename__ = 'eventos_ausencia'
+    __table_args__ = (
+        db.UniqueConstraint('employee_id', 'date', name='uq_eventos_ausencia_employee_date'),
+    )
     
     id = db.Column(db.String(100), primary_key=True)
     date = db.Column(db.Date, nullable=False, index=True)
@@ -197,9 +235,24 @@ class EventoAusencia(db.Model):
 
 # Criar tabelas no banco de dados
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.warning("Nao foi possivel validar/criar a estrutura do banco: %s", exc)
+    try:
+        db.session.execute(
+            sql_text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_eventos_ausencia_employee_date "
+                "ON eventos_ausencia (employee_id, date)"
+            )
+        )
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.warning("Nao foi possivel garantir o indice unico de eventos: %s", exc)
 
-ADMIN_PASSWORD = 'martins@01'
+ADMIN_PASSWORD = os.getenv('BANCO_HORAS_ADMIN_PASSWORD', 'martins@01')
 
 def requires_auth(f):
     """Decorator para proteger rotas que requerem autenticação"""
@@ -209,6 +262,103 @@ def requires_auth(f):
             return jsonify({'erro': 'Acesso não autorizado', 'redirect': '/'}), 401
         return f(*args, **kwargs)
     return decorated
+
+
+def converter_para_data_iso(valor, nome_campo='data'):
+    if isinstance(valor, datetime):
+        return valor.date()
+    if hasattr(valor, 'year') and hasattr(valor, 'month') and hasattr(valor, 'day'):
+        return valor
+    if isinstance(valor, str) and valor.strip():
+        return datetime.fromisoformat(valor.strip()).date()
+    raise ValueError(f'{nome_campo} invÃ¡lida')
+
+
+def evento_pertence_quinzena_atual(data_evento, referencia=None):
+    referencia_data = referencia or datetime.now().date()
+
+    if data_evento.year != referencia_data.year or data_evento.month != referencia_data.month:
+        return False
+
+    if referencia_data.day <= 15:
+        return data_evento.day <= 15
+    return data_evento.day > 15
+
+
+def buscar_evento_existente(employee_id, data_evento):
+    return (
+        EventoAusencia.query
+        .filter_by(employee_id=str(employee_id), date=data_evento)
+        .order_by(EventoAusencia.created_at.asc())
+        .first()
+    )
+
+
+def nome_tipo_ausencia(tipo):
+    mapa = {
+        'folga': 'Folga',
+        'ferias': 'Ferias',
+        'atestado': 'Atestado',
+        'falta': 'Falta',
+    }
+    return mapa.get(str(tipo).lower(), str(tipo))
+
+
+def dataframe_de_objeto_colunar(objeto):
+    if isinstance(objeto, list):
+        return pd.DataFrame(objeto)
+
+    if not isinstance(objeto, dict) or not objeto:
+        return pd.DataFrame()
+
+    tamanho = max((len(valor) for valor in objeto.values() if isinstance(valor, list)), default=0)
+    if tamanho == 0:
+        return pd.DataFrame([objeto])
+
+    linhas = []
+    for indice in range(tamanho):
+        linha = {}
+        for chave, valor in objeto.items():
+            if isinstance(valor, list):
+                linha[chave] = valor[indice] if indice < len(valor) else None
+            else:
+                linha[chave] = valor
+        linhas.append(linha)
+
+    return pd.DataFrame(linhas)
+
+
+def ajustar_largura_planilha(worksheet, dataframe):
+    for indice_coluna, nome_coluna in enumerate(dataframe.columns, start=1):
+        valores = [str(nome_coluna)]
+        if not dataframe.empty:
+            valores.extend(
+                str(valor)
+                for valor in dataframe[nome_coluna].tolist()
+                if valor is not None
+            )
+        largura = min(max((len(valor) for valor in valores), default=10) + 2, 48)
+        worksheet.column_dimensions[get_column_letter(indice_coluna)].width = largura
+
+
+def gerar_arquivo_excel(planilhas, nome_arquivo):
+    buffer = BytesIO()
+
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        for nome_planilha, dataframe in planilhas:
+            df = dataframe if isinstance(dataframe, pd.DataFrame) else pd.DataFrame()
+            nome_seguro = (nome_planilha or 'Planilha')[:31]
+            df.to_excel(writer, sheet_name=nome_seguro, index=False)
+            ajustar_largura_planilha(writer.sheets[nome_seguro], df)
+
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=nome_arquivo,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
 
 def carregar_eventos():
     """Carrega eventos do banco de dados (sem filtro de data, ordenados por data ascendente)"""
@@ -229,7 +379,7 @@ def salvar_evento_db(dados_evento):
     try:
         # Converter string de data para objeto date
         if isinstance(dados_evento.get('date'), str):
-            data_evento = datetime.fromisoformat(dados_evento['date']).date()
+            data_evento = converter_para_data_iso(dados_evento['date'])
         else:
             data_evento = dados_evento['date']
         
@@ -253,6 +403,13 @@ def salvar_evento_db(dados_evento):
         db.session.add(novo_evento)
         db.session.commit()
         return novo_evento.serialize()
+    except IntegrityError:
+        db.session.rollback()
+        evento_existente = buscar_evento_existente(dados_evento.get('employeeId', ''), data_evento)
+        return {
+            '_erro': 'duplicado',
+            'evento_existente': evento_existente.serialize() if evento_existente else None,
+        }
     except Exception as e:
         db.session.rollback()
         print(f"Erro ao salvar evento: {e}")
@@ -486,7 +643,6 @@ def processar_dados(Relatorio_Saldos):
     # Otimização: pré-agrupar eventos por matrícula para a quinzena atual (exclui 'ferias')
     eventos = carregar_eventos()
     hoje = datetime.now().date()
-    primeira_quinzena = hoje.day <= 15
 
     counts = {}
     for ev in eventos:
@@ -503,8 +659,8 @@ def processar_dados(Relatorio_Saldos):
             # Se vier sem hora, ok; se vier com hora (ISO), .date() normaliza
             data_ev = data_ev.date() if isinstance(data_ev, datetime) else data_ev
 
-            # Mesma quinzena do dia atual
-            if (primeira_quinzena and data_ev.day <= 15) or ((not primeira_quinzena) and data_ev.day > 15):
+            # Mesma quinzena do dia atual considerando mÃªs/ano correntes
+            if evento_pertence_quinzena_atual(data_ev, referencia=hoje):
                 counts[mat] = counts.get(mat, 0) + 1
         except Exception:
             # Silenciar registros inválidos para robustez
@@ -571,10 +727,7 @@ def auth_status():
     """Retorna se o usuário já está autenticado na sessão atual"""
     return jsonify({'authenticated': bool(session.get('authenticated', False))})
 
-@app.route('/tabelas')
-@requires_auth
-def tabelas():
-    force_refresh = request.args.get('refresh') == '1'
+def montar_resposta_tabelas(force_refresh=False):
     relatorio_df, df_top_10, df_top_10_receber, cache_meta = obter_relatorio_processado(force=force_refresh)
     mes = proximo_mes()
 
@@ -700,7 +853,43 @@ def tabelas():
         'cache_info': cache_meta,
     }
 
-    return jsonify(normalizar_para_json(resposta))
+    return normalizar_para_json(resposta)
+
+
+@app.route('/tabelas')
+@requires_auth
+def tabelas():
+    force_refresh = request.args.get('refresh') == '1'
+    return jsonify(montar_resposta_tabelas(force_refresh=force_refresh))
+
+
+@app.route('/tabelas/exportar', methods=['GET'])
+@requires_auth
+def exportar_tabelas():
+    force_refresh = request.args.get('refresh') == '1'
+    payload = montar_resposta_tabelas(force_refresh=force_refresh)
+    data_arquivo = datetime.now().date().isoformat()
+
+    planilhas = [
+        ('Top_Saldo', dataframe_de_objeto_colunar(payload.get('top_saldo'))),
+        ('Top_Receber', dataframe_de_objeto_colunar(payload.get('top_receber'))),
+        ('Relatorio_Geral', pd.DataFrame(payload.get('relatorio_geral') or [])),
+        ('Tabela_3', pd.DataFrame(payload.get('tabela_3') or [])),
+        ('Dados_Pagina', pd.DataFrame([payload.get('dados_da_pagina') or {}])),
+        ('Cache_Info', pd.DataFrame([payload.get('cache_info') or {}])),
+        (
+            'Resumo',
+            pd.DataFrame([
+                {
+                    'mes_proximo': payload.get('mes_proximo'),
+                    'data_atual': payload.get('data_atual'),
+                    'total_ausentes': payload.get('total_ausentes'),
+                }
+            ]),
+        ),
+    ]
+
+    return gerar_arquivo_excel(planilhas, f'banco_horas_dados_{data_arquivo}.xlsx')
 
 
 @app.route('/config/mes', methods=['POST'])
@@ -755,6 +944,51 @@ def obter_eventos():
     eventos = carregar_eventos()
     return jsonify({'eventos': eventos})
 
+
+@app.route('/eventos/exportar', methods=['GET'])
+@requires_auth
+def exportar_eventos():
+    inicio = request.args.get('inicio', '').strip()
+    fim = request.args.get('fim', '').strip()
+
+    if not inicio or not fim:
+        return jsonify({'erro': 'Informe a data inicial e final'}), 400
+
+    try:
+        data_inicio = converter_para_data_iso(inicio, 'data inicial')
+        data_fim = converter_para_data_iso(fim, 'data final')
+    except ValueError as exc:
+        return jsonify({'erro': str(exc)}), 400
+
+    if data_inicio > data_fim:
+        return jsonify({'erro': 'A data inicial nÃ£o pode ser maior que a final'}), 400
+
+    eventos = (
+        EventoAusencia.query
+        .filter(EventoAusencia.date >= data_inicio, EventoAusencia.date <= data_fim)
+        .order_by(EventoAusencia.date.asc(), EventoAusencia.employee_name.asc(), EventoAusencia.created_at.asc())
+        .all()
+    )
+
+    if not eventos:
+        return jsonify({'erro': 'Nenhum evento encontrado no perÃ­odo selecionado'}), 404
+
+    linhas = [
+        {
+            'Data': evento.date.isoformat(),
+            'Matricula': evento.employee_id,
+            'Colaborador': evento.employee_name,
+            'Tipo': nome_tipo_ausencia(evento.absence_type),
+            'Observacoes': evento.notes or '',
+            'CriadoEm': evento.created_at.isoformat(),
+            'Origem': evento.source,
+        }
+        for evento in eventos
+    ]
+
+    nome_arquivo = f'eventos_{data_inicio.isoformat()}_a_{data_fim.isoformat()}.xlsx'
+    return gerar_arquivo_excel([('Eventos', pd.DataFrame(linhas))], nome_arquivo)
+
 @app.route('/eventos', methods=['POST'])
 @requires_auth
 def salvar_evento():
@@ -771,12 +1005,27 @@ def salvar_evento():
             if campo not in dados:
                 return jsonify({'erro': f'Campo obrigatório: {campo}'}), 400
         
+        data_evento = converter_para_data_iso(dados.get('date'))
+        employee_id = str(dados.get('employeeId', '')).strip()
+        employee_name = str(dados.get('employeeName', '')).strip()
+        absence_type = str(dados.get('absenceType', '')).strip().lower()
+
+        if not employee_id or not employee_name or not absence_type:
+            return jsonify({'erro': 'Dados do evento estÃ£o incompletos'}), 400
+
+        evento_existente = buscar_evento_existente(employee_id, data_evento)
+        if evento_existente:
+            return jsonify({
+                'erro': 'JÃ¡ existe um evento para este colaborador nesta data',
+                'evento_existente': evento_existente.serialize(),
+            }), 409
+
         novo_evento_data = {
-            'id': f"{datetime.now().timestamp()}_{dados['employeeId']}",
-            'date': dados['date'],
-            'employeeId': str(dados['employeeId']),
-            'employeeName': dados['employeeName'],
-            'absenceType': dados['absenceType'],
+            'id': f"{datetime.now().timestamp()}_{employee_id}",
+            'date': data_evento,
+            'employeeId': employee_id,
+            'employeeName': employee_name,
+            'absenceType': absence_type,
             'notes': dados.get('notes', ''),
             'createdAt': datetime.now().isoformat(),
             'source': 'calendar'
@@ -784,6 +1033,12 @@ def salvar_evento():
         
         evento_salvo = salvar_evento_db(novo_evento_data)
         
+        if isinstance(evento_salvo, dict) and evento_salvo.get('_erro') == 'duplicado':
+            return jsonify({
+                'erro': 'Já existe um evento para este colaborador nesta data',
+                'evento_existente': evento_salvo.get('evento_existente'),
+            }), 409
+
         if evento_salvo:
             return jsonify({'sucesso': True, 'evento': evento_salvo})
         else:
@@ -826,7 +1081,7 @@ def atualizar_ausencia():
             return jsonify({'erro': 'Matrícula e colaborador são obrigatórios'}), 400
         
         # Converter string para date
-        data_evento = datetime.fromisoformat(data_str).date()
+        data_evento = converter_para_data_iso(data_str)
         
         # Remover eventos existentes para este colaborador nesta data
         eventos_existentes = EventoAusencia.query.filter_by(
@@ -871,7 +1126,6 @@ def atualizar_ausencia():
 def criar_interface_servidor():
     """Cria uma interface gráfica moderna para mostrar o status do servidor"""
 
-    inicio_servidor = datetime.now().strftime('%d %b %Y • %H:%M')
     url_dashboard = 'http://localhost:5000'
 
     def abrir_site():
@@ -901,7 +1155,7 @@ def criar_interface_servidor():
     # Criar janela principal
     root = tk.Tk()
     root.title("Controle de Estoque - Gestão de Horas")
-    root.geometry("560x940")
+    root.geometry("560x740")
     root.resizable(False, False)
     root.configure(bg="#0f172a")
 
@@ -1022,9 +1276,7 @@ def criar_interface_servidor():
     stats_grid.pack(fill="x")
 
     stats = [
-        ("🟢", "Status atual", "Ativo e seguro"),
-        ("🕒", "Iniciado em", inicio_servidor),
-        ("🖥️", "Host", "0.0.0.0"),
+        ("🖥️", "Host", "localhost"),
         ("🔌", "Porta", "5000")
     ]
 
@@ -1180,7 +1432,7 @@ if __name__ == '__main__':
     
     # Função para rodar o Flask em thread separada
     def rodar_flask():
-        app.run(debug=False, host='0.0.0.0', port=5000, use_reloader=False)
+        app.run(debug=False, host='127.0.0.1', port=5000, use_reloader=False)
     
     # Iniciar servidor Flask em thread separada
     flask_thread = threading.Thread(target=rodar_flask, daemon=True)

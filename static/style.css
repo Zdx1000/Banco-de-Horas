@@ -1,5 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Poppins', sans-serif; background: #f4f7fc; color: #333; }
+body { font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif; background: #f4f7fc; color: #333; }
 html { font-size: 16px; }
 @media (max-width: 768px) { html { font-size: 14px; } }
 @media (max-width: 480px) { html { font-size: 12px; } }
@@ -894,6 +894,16 @@ header::after {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+.animate__animated {
+    animation-duration: 0.6s;
+    animation-fill-mode: both;
+}
+
+.animate__fadeInUp {
+    animation-name: fadeInUp;
+}
+
 @keyframes slideIn {
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
@@ -1181,7 +1191,7 @@ table {
     border-radius: 18px;
     overflow: hidden;
     box-shadow: none;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     color: #1f2937;
 }
 
@@ -1403,7 +1413,7 @@ table tbody tr:focus-within td {
     margin: 0;
     font-size: 32px;
     font-weight: 700;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     position: relative;
     z-index: 3;
@@ -1806,7 +1816,7 @@ table tbody tr:focus-within td {
     font-weight: 700;
     color: #0f172a;
     margin: 0 0 6px 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     letter-spacing: -0.015em;
 }
 
@@ -1826,7 +1836,7 @@ table tbody tr:focus-within td {
     color: #0b1a3a;
     margin: 12px 0 4px 0;
     text-align: center;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     position: relative;
     letter-spacing: 0.04em;
 }
@@ -2192,7 +2202,7 @@ table tbody tr:focus-within td {
     align-items: center;
     gap: 10px;
     box-shadow: 0 6px 10px rgba(15, 23, 42, 0.12), 0 16px 28px rgba(15, 23, 42, 0.1);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
@@ -2251,7 +2261,7 @@ table tbody tr:focus-within td {
         inset 0 1px 0 rgba(255, 255, 255, 0.28);
     margin: 0 auto;
     max-width: 420px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     position: relative;
     overflow: hidden;
     letter-spacing: 0.01em;
@@ -2506,7 +2516,7 @@ table tbody tr:focus-within td {
     margin-top: clamp(40px, 6vw, 72px);
     padding: clamp(24px, 3vw, 40px) clamp(20px, 5vw, 48px);
     border-top: 1px solid rgba(148, 163, 184, 0.18);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
     position: relative;
     overflow: hidden;
 }

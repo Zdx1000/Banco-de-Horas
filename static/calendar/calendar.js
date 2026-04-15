@@ -1914,6 +1914,329 @@
     }
   }
 
+  function applyAbsenceTypeVisibility() {
+    const absenceTypeSelect = document.getElementById('absenceType');
+    const feriasDurationGroup = document.getElementById('feriassDurationGroup');
+    const atestadoDurationGroup = document.getElementById('atestadoDurationGroup');
+    const folgaDurationGroup = document.getElementById('folgaDurationGroup');
+
+    if (!absenceTypeSelect || !feriasDurationGroup || !atestadoDurationGroup || !folgaDurationGroup) {
+      return;
+    }
+
+    feriasDurationGroup.style.display = 'none';
+    atestadoDurationGroup.style.display = 'none';
+    folgaDurationGroup.style.display = 'none';
+
+    if (absenceTypeSelect.value === 'ferias') {
+      feriasDurationGroup.style.display = 'block';
+    } else if (absenceTypeSelect.value === 'atestado') {
+      atestadoDurationGroup.style.display = 'block';
+    } else if (absenceTypeSelect.value === 'folga') {
+      folgaDurationGroup.style.display = 'block';
+    }
+  }
+
+  function resetEmployeeSelectionMode() {
+    const toggleBtn = document.getElementById('toggleEmployeeSelect');
+    const employeeInput = document.getElementById('employeeInput');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const container = document.querySelector('.employee-input-container');
+
+    if (!toggleBtn || !employeeInput || !employeeSelect || !container) {
+      return;
+    }
+
+    employeeInput.style.display = 'block';
+    employeeSelect.style.display = 'none';
+    container.style.display = 'flex';
+    toggleBtn.textContent = '📋';
+    toggleBtn.title = 'Alternar para lista';
+    toggleBtn.dataset.mode = 'input';
+  }
+
+  async function exportEventsByPeriod() {
+    try {
+      const startInput = document.getElementById('exportStartDate');
+      const endInput = document.getElementById('exportEndDate');
+      const start = startInput?.value;
+      const end = endInput?.value;
+
+      if (!start || !end) {
+        alert('Informe a data inicial e final.');
+        return;
+      }
+
+      if (start > end) {
+        alert('A data inicial não pode ser maior que a final.');
+        return;
+      }
+
+      if (typeof window.downloadAuthenticatedFile !== 'function') {
+        throw new Error('Função de download autenticado não está disponível.');
+      }
+
+      const filename = `eventos_${start}_a_${end}.xlsx`;
+      await window.downloadAuthenticatedFile(
+        `/eventos/exportar?inicio=${encodeURIComponent(start)}&fim=${encodeURIComponent(end)}`,
+        filename
+      );
+      closeExportModal();
+    } catch (err) {
+      console.error('Erro ao exportar eventos:', err);
+      alert(err.message || 'Erro ao exportar eventos. Veja o console para detalhes.');
+    }
+  }
+
+  function openEventModal(date) {
+    const modal = document.getElementById('eventModal');
+    const eventDateInput = document.getElementById('eventDate');
+    const absenceTypeSelect = document.getElementById('absenceType');
+
+    if (!modal || !eventDateInput || !absenceTypeSelect) {
+      return;
+    }
+
+    const formattedDate = date.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    eventDateInput.value = formattedDate;
+    selectedDate = date;
+    resetEmployeeSelectionMode();
+    populateEmployeeDatalist();
+    setupToggleButton();
+    absenceTypeSelect.onchange = applyAbsenceTypeVisibility;
+    applyAbsenceTypeVisibility();
+
+    setTimeout(() => {
+      checkEmployeeConflicts();
+    }, 100);
+
+    modal.style.display = '';
+    modal.classList.add('show');
+  }
+
+  function closeEventModal() {
+    const modal = document.getElementById('eventModal');
+    if (modal) {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        if (!modal.classList.contains('show')) {
+          modal.style.display = 'none';
+        }
+      }, 100);
+    }
+
+    hideConflictWarning();
+    resetEmployeeSelectionMode();
+
+    const employeeInput = document.getElementById('employeeInput');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const absenceType = document.getElementById('absenceType');
+    const feriasDuration = document.getElementById('feriassDuration');
+    const atestadoDuration = document.getElementById('atestadoDuration');
+    const folgaDuration = document.getElementById('folgaDuration');
+    const eventNotes = document.getElementById('eventNotes');
+
+    if (employeeInput) employeeInput.value = '';
+    if (employeeSelect) employeeSelect.value = '';
+    if (absenceType) absenceType.value = '';
+    if (feriasDuration) feriasDuration.value = '1';
+    if (atestadoDuration) atestadoDuration.value = '1';
+    if (folgaDuration) folgaDuration.value = '1';
+    if (eventNotes) eventNotes.value = '';
+
+    applyAbsenceTypeVisibility();
+  }
+
+  function populateEmployeeDatalist() {
+    const employeeList = document.getElementById('employeeList');
+    const employeeInput = document.getElementById('employeeInput');
+    const employeeSelect = document.getElementById('employeeSelect');
+
+    if (!employeeList || !employeeInput || !employeeSelect) {
+      return;
+    }
+
+    employeeList.innerHTML = '';
+    const employees = getEmployeesFromData();
+
+    employees.forEach((employee) => {
+      const option = document.createElement('option');
+      option.value = employee.matricula;
+      option.textContent = employee.estaAusente
+        ? `${employee.matricula} - ${employee.nome} [AUSENTE: ${employee.statusAusencia.toUpperCase()}]`
+        : `${employee.matricula} - ${employee.nome}`;
+      employeeList.appendChild(option);
+    });
+
+    populateEmployeeSelect();
+
+    employeeInput.oninput = function() {
+      const searchValue = this.value.toLowerCase();
+      const filtered = employees.filter(
+        (emp) => emp.matricula.toLowerCase().includes(searchValue) || emp.nome.toLowerCase().includes(searchValue)
+      );
+
+      employeeList.innerHTML = '';
+      filtered.forEach((employee) => {
+        const option = document.createElement('option');
+        option.value = employee.matricula;
+        option.textContent = employee.estaAusente
+          ? `${employee.matricula} - ${employee.nome} [AUSENTE: ${employee.statusAusencia.toUpperCase()}]`
+          : `${employee.matricula} - ${employee.nome}`;
+        employeeList.appendChild(option);
+      });
+
+      checkEmployeeConflicts();
+    };
+
+    employeeSelect.onchange = checkEmployeeConflicts;
+  }
+
+  function setupToggleButton() {
+    const toggleBtn = document.getElementById('toggleEmployeeSelect');
+    const employeeInput = document.getElementById('employeeInput');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const container = document.querySelector('.employee-input-container');
+
+    if (!toggleBtn || !employeeInput || !employeeSelect || !container) {
+      return;
+    }
+
+    if (!toggleBtn.dataset.mode) {
+      toggleBtn.dataset.mode = 'input';
+    }
+
+    toggleBtn.onclick = function() {
+      const isSelectMode = toggleBtn.dataset.mode === 'select';
+
+      if (isSelectMode) {
+        employeeInput.style.display = 'block';
+        employeeSelect.style.display = 'none';
+        container.style.display = 'flex';
+        toggleBtn.textContent = '📋';
+        toggleBtn.title = 'Alternar para lista';
+        toggleBtn.dataset.mode = 'input';
+      } else {
+        employeeInput.style.display = 'none';
+        employeeSelect.style.display = 'block';
+        container.style.display = 'block';
+        toggleBtn.textContent = '✏️';
+        toggleBtn.title = 'Alternar para digitação';
+        toggleBtn.dataset.mode = 'select';
+      }
+
+      checkEmployeeConflicts();
+    };
+  }
+
+  function addAbsenceIndicators(totalAusentes) {
+    const headerIndicator = document.querySelector('.absence-indicator[data-role="header-indicator"]');
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    if (headerIndicator) {
+      const valueNode = headerIndicator.querySelector('.indicator-value');
+      let totalHoje = typeof totalAusentes === 'number' ? totalAusentes : null;
+
+      if (totalHoje === null) {
+        if (Array.isArray(window.calendarEvents) && window.calendarEvents.length) {
+          totalHoje = window.calendarEvents.filter((event) => {
+            const eventDateStr = new Date(event.date).toISOString().split('T')[0];
+            return eventDateStr === todayStr;
+          }).length;
+        } else {
+          const selects = document.querySelectorAll('#tableBody13 .ausencia-select');
+          totalHoje = Array.from(selects).filter((select) => select.value && select.value.trim() !== '').length;
+        }
+      }
+
+      if (valueNode) {
+        valueNode.textContent = totalHoje !== null ? String(totalHoje) : '--';
+      }
+    }
+
+    if (!Array.isArray(window.calendarEvents) || window.calendarEvents.length === 0) {
+      clearAbsenceIndicators();
+      return;
+    }
+
+    clearAbsenceIndicators();
+
+    const eventsByEmployee = window.calendarEvents.reduce((acc, event) => {
+      if (!event || !event.employeeId) return acc;
+      const eventDate = new Date(event.date);
+      const eventDateStr = eventDate.toISOString().split('T')[0];
+
+      if (eventDateStr < todayStr) return acc;
+
+      const employeeId = String(event.employeeId);
+      if (!acc[employeeId]) acc[employeeId] = [];
+      acc[employeeId].push({
+        date: eventDate,
+        raw: event
+      });
+      return acc;
+    }, {});
+
+    const rows = document.querySelectorAll('#tableBody13 tr');
+    rows.forEach((row) => {
+      const matriculaCell = row.querySelector('td[data-column-key="Matrícula"]');
+      if (!matriculaCell) return;
+
+      const matricula = (matriculaCell.textContent || '').trim();
+      if (!matricula || !eventsByEmployee[matricula]) return;
+
+      const futureEvents = eventsByEmployee[matricula]
+        .slice()
+        .sort((a, b) => a.date - b.date);
+
+      const nextEvent = futureEvents[0];
+      if (!nextEvent) return;
+
+      const indicator = document.createElement('span');
+      indicator.className = 'absence-indicator';
+      indicator.dataset.origin = 'table';
+      indicator.style.cssText =
+        'position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(45deg, #FF6B6B, #FF8E8E); box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; display: inline-block; pointer-events: none;';
+
+      const daysDiff = Math.max(0, Math.ceil((nextEvent.date - today) / (1000 * 60 * 60 * 24)));
+      const dayLabel = daysDiff === 0 ? 'hoje' : `${daysDiff} dia${daysDiff > 1 ? 's' : ''}`;
+      indicator.title = `Ausência programada: ${getAbsenceTypeName(nextEvent.raw.absenceType)} em ${nextEvent.date.toLocaleDateString('pt-BR')} (${dayLabel})`;
+
+      if (matriculaCell.style.position === '' || getComputedStyle(matriculaCell).position === 'static') {
+        matriculaCell.style.position = 'relative';
+      }
+
+      matriculaCell.appendChild(indicator);
+    });
+  }
+
+  function startAbsenceUpdater() {
+    window.testAbsenceApplication = testAbsenceApplication;
+    window.gerarRelatorioAusencias = gerarRelatorioAusencias;
+    window.resetarAusenciasCalendario = resetarAusenciasCalendario;
+    window.obterDadosAtualizados = obterDadosAtualizados;
+
+    updateTableAbsences();
+    updateAbsenceSummaryPanel();
+
+    if (window.__absenceUpdaterInterval) {
+      clearInterval(window.__absenceUpdaterInterval);
+    }
+
+    window.__absenceUpdaterInterval = setInterval(() => {
+      updateTableAbsences();
+    }, 60000);
+
+    console.log('Sistema de ausencias inicializado (Calendário Exclusivo)');
+  }
+
   window.calendarModule = {
     openCalendarModal,
     closeCalendarModal,
