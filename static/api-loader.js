@@ -77,6 +77,90 @@ function applyRowAnimation(row, index) {
   row.style.setProperty('--row-delay', `${delay}ms`);
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function ensureRankingColGroup(table) {
+  let colGroup = table.querySelector('colgroup[data-role="ranking-auto-columns"]');
+
+  if (!colGroup) {
+    colGroup = document.createElement('colgroup');
+    colGroup.dataset.role = 'ranking-auto-columns';
+
+    for (let i = 0; i < 4; i++) {
+      colGroup.appendChild(document.createElement('col'));
+    }
+
+    table.insertBefore(colGroup, table.firstChild);
+  }
+
+  return Array.from(colGroup.children);
+}
+
+function getColumnWeight(cells, options = {}) {
+  const { min = 1, max = Number.POSITIVE_INFINITY, multiplier = 1 } = options;
+
+  const maxTextLength = cells.reduce((currentMax, cell) => {
+    if (!cell) return currentMax;
+
+    const text = (cell.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return Math.max(currentMax, text.length);
+  }, 0);
+
+  return clamp(maxTextLength * multiplier, min, max);
+}
+
+function applyRankingColumnWidths(table, widths, headerRow, bodyRows) {
+  table.style.tableLayout = 'fixed';
+
+  const columns = ensureRankingColGroup(table);
+  columns.forEach((column, index) => {
+    column.style.width = widths[index];
+  });
+
+  Array.from(headerRow.children).forEach((cell, index) => {
+    cell.style.width = widths[index];
+  });
+
+  bodyRows.forEach(row => {
+    Array.from(row.children).forEach((cell, index) => {
+      cell.style.width = widths[index];
+    });
+  });
+}
+
+function autoFitRankingColumns(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+
+  const headerRow = Array.from(table.querySelectorAll('thead tr'))
+    .find(row => row.children.length === 4);
+  const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+
+  if (!headerRow || bodyRows.length === 0) return;
+
+  const columnCells = [0, 1, 2, 3].map(index => [
+    headerRow.children[index],
+    ...bodyRows.map(row => row.children[index]).filter(Boolean)
+  ]);
+
+  const weights = [
+    getColumnWeight(columnCells[0], { min: 10, max: 14, multiplier: 0.95 }),
+    getColumnWeight(columnCells[1], { min: 22, max: 40, multiplier: 1.25 }),
+    getColumnWeight(columnCells[2], { min: 18, max: 34, multiplier: 1.1 }),
+    getColumnWeight(columnCells[3], { min: 12, max: 18, multiplier: 1 })
+  ];
+
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0) || 1;
+  const widths = weights.map(value => `${((value / totalWeight) * 100).toFixed(2)}%`);
+
+  applyRankingColumnWidths(table, widths, headerRow, bodyRows);
+}
+
 function renderApiTables(data) {
   if (!data) {
     console.warn('renderApiTables recebeu dados inválidos:', data);
@@ -165,6 +249,8 @@ function atualizarTabela1(topSaldo) {
     applyRowAnimation(row, i);
     tableBody.appendChild(row);
   }
+
+  requestAnimationFrame(() => autoFitRankingColumns("relatorioTable"));
 }
 
 // Função para atualizar a Tabela 2
@@ -227,6 +313,8 @@ function atualizarTabela2(topReceber) {
     applyRowAnimation(row, i);
     tableBody2.appendChild(row);
   }
+
+  requestAnimationFrame(() => autoFitRankingColumns("relatorioTable2"));
 }
 
 // Função para atualizar a Tabela 3 - Relatório Geral
