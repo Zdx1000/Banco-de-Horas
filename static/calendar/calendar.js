@@ -1819,6 +1819,7 @@
     console.log('🔄 REFRESH: Iniciando atualização completa dos dados...');
 
     const refreshBtn = document.getElementById('refreshBtn');
+    if (!refreshBtn) return;
     const originalHTML = refreshBtn.innerHTML;
 
     refreshBtn.innerHTML = `
@@ -1882,10 +1883,13 @@
       `;
 
       setTimeout(() => {
-        refreshBtn.style.background = 'linear-gradient(135deg, #2196F3, #1976D2)';
+        refreshBtn.style.removeProperty('background');
         refreshBtn.innerHTML = originalHTML;
         refreshBtn.disabled = false;
-        document.head.removeChild(style);
+        refreshBtn.blur();
+        if (style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
       }, 2000);
     } catch (error) {
       console.error('❌ REFRESH: Erro durante atualização:', error);
@@ -1904,10 +1908,13 @@
       `;
 
       setTimeout(() => {
-        refreshBtn.style.background = 'linear-gradient(135deg, #2196F3, #1976D2)';
+        refreshBtn.style.removeProperty('background');
         refreshBtn.innerHTML = originalHTML;
         refreshBtn.disabled = false;
-        document.head.removeChild(style);
+        refreshBtn.blur();
+        if (style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
       }, 3000);
 
       alert('Erro ao atualizar os dados. Verifique sua conexão e tente novamente.');
