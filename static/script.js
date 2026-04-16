@@ -1,4 +1,4 @@
-// Toggle global de logs de debug (idempotente) — por padrão, desabilita console.log
+// desabilit a console.log
 (function () {
   if (typeof window === 'undefined' || typeof console === 'undefined') return;
   if (window.__logToggleInit) return; // evita reinicializar
@@ -1351,9 +1351,8 @@ function openCompensacaoModal() {
   totalCompensacao.innerHTML = `
     <div class="total-compensacao-wrapper">
       <strong>Total de ausências Hoje: ${total} evento${total !== 1 ? 's' : ''}</strong>
-      <span>Colaboradores impactados: ${uniqueEmployeesToday}</span>
       <span>${tendenciaTexto}</span>
-      <small>💾 Dados baseados no calendário • Última atualização: ${new Date().toLocaleString('pt-BR')}</small>
+      <small>Última atualização: ${new Date().toLocaleString('pt-BR')}</small>
     </div>
   `;
 

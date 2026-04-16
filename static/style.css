@@ -15,14 +15,14 @@
     --text-muted:     #A8B1C0;
     --text-on-accent: #FFFFFF;
     
-    /* ── Acento Principal ── */
+    /* ── Principal ── */
     --accent:         #4A6CF7;
     --accent-hover:   #3B5DE8;
     --accent-light:   rgba(74, 108, 247, 0.08);
     --accent-lighter: rgba(74, 108, 247, 0.04);
     --accent-border:  rgba(74, 108, 247, 0.18);
     
-    /* ── Cores Semânticas ── */
+    /* ── Cores ── */
     --color-folga:        #22C55E;
     --color-folga-bg:     rgba(34, 197, 94, 0.07);
     --color-folga-border: rgba(34, 197, 94, 0.20);
@@ -215,7 +215,7 @@ header::after {
     box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
 }
 
-/* ── Indicador de Ausência (Header) ── */
+/* ── Indicador de Ausência ── */
 .absence-indicator {
     display: inline-flex;
     align-items: center;
@@ -738,9 +738,7 @@ header::after {
 }
 
 
-/* ==========================================================================
-   5. INFO CARDS (KPIs)
-   ========================================================================== */
+
 .info-cards {
     width: 100%;
     margin: 0 auto 24px;
@@ -820,9 +818,6 @@ header::after {
 #Total_de_Abono { color: #16A34A; }
 
 
-/* ==========================================================================
-   6. TABELAS (VISUAL ORIGINAL — edite aqui à vontade)
-   ========================================================================== */
 .table-container {
     margin-top: 32px;
     padding: clamp(18px, 3vw, 32px);
@@ -1131,9 +1126,7 @@ table tbody tr:focus-within td {
 }
 
 
-/* ==========================================================================
-   7. MODAIS
-   ========================================================================== */
+
 .modal {
     display: none;
     position: fixed;
@@ -1271,9 +1264,6 @@ table tbody tr:focus-within td {
 .modal-body::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 
-/* ==========================================================================
-   10. COMPENSAÇÃO / AUSÊNCIAS (Modal)
-   ========================================================================== */
 .compensacao-stats {
     display: flex;
     flex-direction: column;
@@ -1752,9 +1742,6 @@ table tbody tr:focus-within td {
 .total-compensacao::after { content: none; }
 
 
-/* ==========================================================================
-   8. CALENDÁRIO — Opções e Calendário
-   ========================================================================== */
 .calendar-options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -2242,9 +2229,7 @@ table tbody tr:focus-within td {
 .event-view-card.event-view-card--falta .event-view-card__icon    { background: var(--color-falta-bg); color: var(--color-falta-text); }
 
 
-/* ==========================================================================
-   9. FORMULÁRIOS & EVENTOS (Modal)
-   ========================================================================== */
+
 .modal-content.event {
     border-radius: var(--radius-2xl);
     background: var(--bg-surface);
@@ -2493,9 +2478,6 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
 }
 
 
-/* ==========================================================================
-   11. RODAPÉ
-   ========================================================================== */
 .app-footer {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 246, 249, 0.98));
     color: var(--text-secondary);
@@ -2600,9 +2582,6 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
 }
 
 
-/* ==========================================================================
-   12. UTILITÁRIOS & COMPONENTES EXTRAS
-   ========================================================================== */
 
 /* ── Cards Gerais ── */
 .card {
@@ -2715,9 +2694,7 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
 .sub-chart { margin-top: 22px; }
 
 
-/* ==========================================================================
-   13. ANIMAÇÕES
-   ========================================================================== */
+/* 13. ANIMAÇÕES */
 @keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-12px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -2763,9 +2740,7 @@ select.ausencia-select.changed { animation: selectChange 0.2s var(--ease-smooth)
 }
 
 
-/* ==========================================================================
-   14. RESPONSIVIDADE
-   ========================================================================== */
+/* 14. RESPONSIVIDADE */
 
 /* ── 1024px ── */
 @media (max-width: 1024px) {

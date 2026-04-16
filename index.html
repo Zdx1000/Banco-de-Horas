@@ -11,7 +11,6 @@
   <link rel="stylesheet" href="static/style.css">
   
   <style>
-    /* Bloquear conteúdo inicial até autenticação */
     body {
       visibility: hidden;
     }
@@ -36,7 +35,7 @@
                   <span id="ausentes-hoje" class="indicator-value">--</span>
                 </div>
               </div>
-              <span class="header-tagline">Monitoramento em tempo real do banco de horas</span>
+              <span class="header-tagline">Monitoramento banco de horas</span>
             </div>
           </div>
           <div class="header-actions">
@@ -162,7 +161,7 @@
       </div>
     </div>
       
-  <!-- Modal de Compensação -->
+  <!-- Compensação -->
   <div id="compensacaoModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -171,7 +170,6 @@
       </div>
       <div class="modal-body">
         <div id="compensacaoData" class="compensacao-stats">
-          <!-- Os dados serão inseridos aqui via JavaScript -->
         </div>
       </div>
       <div class="modal-footer">
@@ -190,7 +188,7 @@
     </div>
   </div>
   
-  <!-- Modal de Opções do Calendário -->
+  <!-- Calendário -->
   <div id="calendarOptionsModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -227,7 +225,7 @@
     </div>
   </div>
   
-  <!-- Modal do Calendário -->
+
   <div id="calendarModal" class="modal">
     <div class="modal-content calendar">
       <div class="modal-header">
@@ -252,7 +250,7 @@
               <div class="day-header">Sáb</div>
             </div>
             <div id="calendarDays" class="calendar-days">
-              <!-- Os dias serão gerados pelo JavaScript -->
+
             </div>
           </div>
         </div>
@@ -265,7 +263,7 @@
     </div>
   </div>
   
-  <!-- Modal de Exportação de Eventos -->
+  <!-- Eventos -->
   <div id="exportModal" class="modal">
     <div class="modal-content export">
       <div class="modal-header">
@@ -292,7 +290,7 @@
     </div>
   </div>
   
-  <!-- Modal de Evento do Calendário -->
+
   <div id="eventModal" class="modal">
     <div class="modal-content event">
       <div class="modal-header">
@@ -320,13 +318,11 @@
                 <div class="employee-input-container">
                   <input type="text" id="employeeInput" class="form-input" placeholder="Digite a matrícula ou nome do colaborador..." list="employeeList">
                   <datalist id="employeeList">
-                    <!-- As opções serão preenchidas via JavaScript -->
                   </datalist>
                   <button type="button" id="toggleEmployeeSelect" class="toggle-btn" aria-label="Alternar lista de colaboradores">📋</button>
                 </div>
                 <select id="employeeSelect" class="form-select" style="display: none;">
                   <option value="">Selecione um colaborador...</option>
-                  <!-- As opções serão preenchidas via JavaScript -->
                 </select>
               </div>
             </div>
@@ -421,7 +417,7 @@
     </div>
   </div>
   
-  <!-- Carregar sistema de autenticação PRIMEIRO -->
+
   <script src="static/auth.js" defer></script>
   <script src="static/script.js" defer></script>
   <script src="static/api-loader.js" defer></script>
